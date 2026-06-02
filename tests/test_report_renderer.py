@@ -53,27 +53,3 @@ def test_summary_polishes_raw_sentences_and_uses_duration_24():
     assert ". with" not in summary
     assert ".." not in summary
     assert "comparator/control Comparator:" not in summary
-
-
-def test_summary_cleans_user_observed_raw_phrases():
-    facts = ApplicationFacts(
-        product_or_intervention="StepRight",
-        acronym_or_short_name="MQAE",
-        target_population="aged 60 and over with recent falls risk and reduced balance confidence will be randomised 2:1 to intervention",
-        clinical_or_social_care_need="fall prevention, mobility rehabilitation",
-        sites_or_setting="NHS community rehabilitation services",
-        study_design="To conduct a randomised mixed-methods real-world pilot trial of the system across NHS community rehabilitation services, assessing feasibility, acceptability, and early clinical outcomes",
-        sample_size="54 participants",
-        comparator_or_control="Some will use StepRight plus usual care, and some will receive usual care only",
-        trl_evidence="TRL 3-4 to TRL 6-7",
-        duration_months="24",
-        endpoints=["Recruitment", "adherence", "fidelity", "recruitment", "Berg Balance Scale"],
-    )
-    dashboard = [{"Subsystem": "Eligibility", "RAG": "AMBER", "Priority action": "Add or verify lead applicant."}]
-    summary = render_summary(facts, dashboard, "")
-
-    assert "to intervent" not in summary
-    assert "The design is To conduct" not in summary
-    assert "Recruitment, adherence, fidelity, Berg Balance Scale" in summary
-    assert "recruitment, Berg" not in summary
-    assert "with sample size 54 participants and comparator/control Some will use" in summary

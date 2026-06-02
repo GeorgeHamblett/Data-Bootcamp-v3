@@ -41,35 +41,12 @@ def _remove_label_prefix(value: object, labels: tuple[str, ...]) -> str:
     return text
 
 
-def _normalise_study_design(value: object) -> str:
-    text = _remove_label_prefix(value, ("study design", "design", "methods?"))
-    text = re.sub(r"^to conduct an?\s+", "", text, flags=re.I)
-    text = re.sub(r"^we will conduct an?\s+", "", text, flags=re.I)
-    return text[:1].lower() + text[1:] if text.startswith(("A ", "An ")) else text
-
-
-def _unique_texts(values: list[str]) -> list[str]:
-    seen: set[str] = set()
-    output: list[str] = []
-    for value in values:
-        key = value.lower().strip()
-        if key and key not in seen:
-            seen.add(key)
-            output.append(value)
-    return output
-
-
 def _compress(value: object, kind: str = "generic") -> str:
     if not _present(value):
         return ""
     text = str(value).strip()
     if kind == "population":
-        text = re.split(r"\bwill be (?:randomi[sz]ed|recruited|allocated|invited)\b", text, maxsplit=1, flags=re.I)[0].strip()
-        for pattern in [
-            r"(older adults?[^.;]{0,120})",
-            r"((?:participants?\s+)?aged \d+[^.;,]{0,100})",
-            r"((?:patients|people|adults|children|service users)[^.;]{0,100})",
-        ]:
+        for pattern in [r"(older adults?[^.;]{0,120})", r"(participants? aged \d+[^.;]{0,100})", r"((?:patients|people|adults|children|service users)[^.;]{0,100})"]:
             m = re.search(pattern, text, re.I)
             if m:
                 return m.group(1).strip(" .;:")
@@ -136,28 +113,18 @@ def render_main_case_summary(facts: ApplicationFacts, dashboard: list[dict], pri
     ]
     population = ". ".join(f"{label} {value}" for label, value in _unique_phrases(population_bits) if value)
 
-    design = _normalise_study_design(facts.study_design)
-    methodology = _strip_terminal_punctuation(facts.methodology) if _present(facts.methodology) else ""
-    sample_size = _strip_terminal_punctuation(facts.sample_size) if _present(facts.sample_size) else ""
-    comparator = _remove_label_prefix(facts.comparator_or_control, ("comparator", "control")) if _present(facts.comparator_or_control) else ""
-    design_sentence = _phrase("The design is", design)
-    if methodology:
-        design_sentence = _join_sentences([design_sentence, f"using {methodology}"], ", ")
-    sample_and_comparator = " and ".join(
-        part for part in [
-            f"sample size {sample_size}" if sample_size else "",
-            f"comparator/control {comparator}" if comparator else "",
-        ]
-        if part
-    )
-    if sample_and_comparator:
-        design_sentence = _join_sentences([design_sentence, f"with {sample_and_comparator}"], ", ")
+    design_parts = [
+        _phrase("The design is", facts.study_design),
+        _phrase("using", facts.methodology),
+        _phrase("with sample size", facts.sample_size),
+        _phrase("and comparator/control", _remove_label_prefix(facts.comparator_or_control, ("comparator", "control"))),
+    ]
     development_parts = [
         _phrase("The development-stage evidence is", facts.trl_evidence),
         _phrase("The extracted timeline appears to run to", ("Month " + facts.duration_months) if _present(facts.duration_months) and "month" not in str(facts.duration_months).lower() else facts.duration_months),
     ]
-    evidence = _join_sentences([design_sentence, _join_sentences(development_parts)]) or "The evidence-generation design needs clearer application evidence."
-    outcomes = ", ".join(_unique_texts(facts.endpoints)[:10]) if facts.endpoints else "outcomes/endpoints need clearer confirmation"
+    evidence = _join_sentences([_join_sentences(design_parts, ", "), _join_sentences(development_parts)]) or "The evidence-generation design needs clearer application evidence."
+    outcomes = ", ".join(facts.endpoints[:10]) if facts.endpoints else "outcomes/endpoints need clearer confirmation"
 
     readiness_bits = [
         _phrase("Regulatory/adoption evidence includes", facts.regulatory_plan),
@@ -231,47 +198,6 @@ def clean_table_evidence(value: object, area: str = "", requirement: str = "") -
     if not cleaned:
         return NOT_EXPLICITLY_STATED
     return cleaned[:500]
-
-
-
-def _safe(value: object) -> str:
-    """Return a readable fallback for missing extracted values."""
-    return clean_table_evidence(value)
-
-
-def _counts_by_rag(items: list[ChecklistItem]) -> dict[str, int]:
-    """Count checklist items by RAG status with stable zero defaults."""
-    counts = Counter(item.rag for item in items)
-    return {rag: counts.get(rag, 0) for rag in ("GREEN", "AMBER", "RED", "GREY")}
-
-
-def _top_actions_from_items(items: list[ChecklistItem], rags: set[str], limit: int) -> list[str]:
-    """Return deduplicated adviser actions for checklist items matching the requested RAG statuses."""
-    actions: list[str] = []
-    seen: set[str] = set()
-    for item in items:
-        if item.rag not in rags:
-            continue
-        action = _action(item)
-        key = action.lower()
-        if key not in seen:
-            seen.add(key)
-            actions.append(action)
-        if len(actions) >= limit:
-            break
-    return actions
-
-
-def group_dashboard_by_rag(dashboard: list[dict]) -> dict[str, list[str]]:
-    """Group dashboard subsystem names by RAG status for summaries."""
-    groups: dict[str, list[str]] = {rag: [] for rag in ("GREEN", "AMBER", "RED", "GREY")}
-    for row in dashboard:
-        rag = str(row.get("RAG", "GREY") or "GREY").upper()
-        subsystem = str(row.get("Subsystem", "")).strip()
-        if not subsystem:
-            continue
-        groups.setdefault(rag, []).append(subsystem)
-    return groups
 
 
 def render_checklist_report_summary(items: list[ChecklistItem], facts: ApplicationFacts | None = None) -> str:
@@ -404,15 +330,7 @@ def render_priority_missing_evidence(items: list[ChecklistItem], dashboard: list
 
 
 def render_executive_review_note(facts: ApplicationFacts, dashboard: list[dict], priority_gaps: str = "") -> str:
-    # Keep this renderer self-contained: it is called after the main summary in the
-    # Streamlit app, so it should never fail because a private grouping helper was
-    # renamed or unavailable in an older checkout.
-    groups: dict[str, list[str]] = {rag: [] for rag in ("GREEN", "AMBER", "RED", "GREY")}
-    for row in dashboard:
-        rag = str(row.get("RAG", "GREY") or "GREY").upper()
-        subsystem = str(row.get("Subsystem", "")).strip()
-        if subsystem:
-            groups.setdefault(rag, []).append(subsystem)
+    groups = _dashboard_groups(dashboard)
     first_action = _strip_terminal_punctuation(next((row.get("Priority action") for row in dashboard if row.get("RAG") in {"RED", "AMBER"}), "Review the detailed checklist table"))
     bullets = [
         f"- Application focus: {_safe(facts.product_or_intervention)} for {_compress(facts.target_population, 'population') or NOT_EXPLICITLY_STATED}.",
