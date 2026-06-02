@@ -11,8 +11,13 @@ from report_renderer import (
     checklist_table_rows,
     dashboard_table_rows,
     raw_json_payload,
+    render_checklist_report_summary,
+    render_executive_review_note,
+    render_main_case_summary,
     render_priority_missing_evidence,
-    render_summary,
+    render_rag_dashboard_summary,
+    render_raw_json_note,
+    render_similarity_check_summary,
     similarity_table_rows,
 )
 from settings import Settings
@@ -70,8 +75,7 @@ def main() -> None:
             req.overrides_general_guidance = True
         checklist = build_checklist(facts, baseline, specific_reqs)
         dashboard = build_rag_dashboard(checklist, facts)
-        priority = render_priority_missing_evidence(checklist)
-        summary = render_summary(facts, dashboard, priority)
+        priority = render_priority_missing_evidence(checklist, dashboard, facts)
         similarity = run_similarity_service(
             facts,
             settings,
@@ -92,25 +96,36 @@ def main() -> None:
     with tab_summary:
         if not specific_reqs:
             st.info(NO_SPECIFIC_CALL_GUIDANCE_MESSAGE)
-        st.markdown(summary)
+        st.markdown(render_main_case_summary(facts, dashboard, priority))
+        st.markdown(render_executive_review_note(facts, dashboard, priority))
     with tab_checklist:
+        st.markdown("## Summary of key information extracted")
+        st.markdown(render_checklist_report_summary(checklist, facts))
+        st.markdown("## Detailed checklist table")
         st.dataframe(checklist_table_rows(checklist), use_container_width=True)
         if show_raw_requirements:
             st.subheader("Developer: raw extracted requirements")
             st.json([req.__dict__ for req in baseline + specific_reqs])
     with tab_rag:
+        st.markdown("## Summary of key information extracted")
+        st.markdown(render_rag_dashboard_summary(dashboard))
+        st.markdown("## Detailed RAG dashboard")
         st.dataframe(dashboard_table_rows(dashboard), use_container_width=True)
         warnings = [w for row in dashboard for w in row.get("hard_validation_warnings", [])]
         if warnings:
             st.warning("; ".join(warnings))
     with tab_similarity:
+        st.markdown("## Summary of key information extracted")
+        st.markdown(render_similarity_check_summary(similarity))
+        st.markdown("## Detailed similarity results")
         st.write("Similarity uses live APIs only when explicitly enabled and privacy gates allow it. Normal flow does not simulate results.")
         st.dataframe(similarity_table_rows(similarity["results"]), use_container_width=True)
         st.caption("Query terms: " + ", ".join(similarity["query"].primary_terms + similarity["query"].secondary_terms))
     with tab_priority:
         st.markdown(priority)
     with tab_raw:
-        st.code(raw_json_payload(facts=facts, checklist=checklist, dashboard=dashboard, similarity=similarity), language="json")
+        st.markdown(render_raw_json_note())
+        st.json(raw_json_payload(facts=facts, checklist=checklist, dashboard=dashboard, similarity=similarity))
 
 
 if __name__ == "__main__":
