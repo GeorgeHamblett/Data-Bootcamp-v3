@@ -5,6 +5,9 @@ import sys
 from pathlib import Path
 
 import report_renderer
+from checklist_engine import build_checklist
+from guidance_parser import derived_reviewer_requirements
+from rag_dashboard import build_rag_dashboard
 from schemas import ApplicationFacts
 
 EXPECTED = {
@@ -59,3 +62,13 @@ def test_streamlit_app_imports_without_importerror():
 def test_subprocess_app_import_smoke():
     completed = subprocess.run([sys.executable, "-c", "import app; print('app import ok')"], check=True, capture_output=True, text=True)
     assert "app import ok" in completed.stdout
+
+
+def test_public_renderer_functions_run_without_missing_private_helpers():
+    facts = ApplicationFacts(project_title="Import smoke", finance_or_budget_evidence="Staff costs and cost justification are included")
+    checklist = build_checklist(facts, derived_reviewer_requirements())
+    dashboard = build_rag_dashboard(checklist, facts)
+
+    assert "Checklist row counts" in report_renderer.render_checklist_report_summary(checklist, facts)
+    assert "Overall risk profile" in report_renderer.render_rag_dashboard_summary(dashboard)
+    assert "Application focus" in report_renderer.render_executive_review_note(facts, dashboard, "")

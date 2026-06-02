@@ -205,6 +205,27 @@ def _best_sentence(text: str, include: list[str], exclude: list[str] | None = No
     return scored[0][1]
 
 
+
+def _extract_sites_or_setting(text: str) -> str | None:
+    """Prefer explicit NHS/service setting phrases over generic partner/team mentions."""
+    for sentence in _sentences(text):
+        if _is_noise(sentence) or re.match(r"partners? include", sentence, re.I):
+            continue
+        match = re.search(
+            r"(NHS\s+community[^.;,\n]{0,140}(?:services?|clinics?|teams?|trusts?|sites?|settings?|rehabilitation))",
+            sentence,
+            re.I,
+        )
+        if match:
+            return _short(match.group(1), 180)
+    for sentence in _sentences(text):
+        if _is_noise(sentence) or re.match(r"partners? include", sentence, re.I):
+            continue
+        if re.search(r"community rehabilitation|primary care|secondary care|social care", sentence, re.I):
+            return _short(sentence, 180)
+    return None
+
+
 def _extract_study_design(text: str) -> str | None:
     return _best_sentence(text, STUDY_DESIGN_TERMS, BACKGROUND_TERMS, 260)
 
@@ -423,6 +444,7 @@ def extract_application_facts(documents: Iterable[LoadedDocument]) -> Applicatio
         "clinical_or_social_care_need": _extract_clinical_need,
         "technology_type": _extract_technology_type,
         "study_design": _extract_study_design,
+        "sites_or_setting": _extract_sites_or_setting,
         "regulatory_plan": lambda text: _extract_weighted_plan(text, REGULATORY_STRONG, REGULATORY_WEAK),
         "health_economics_plan": lambda text: _extract_weighted_plan(text, HEALTH_ECON_STRONG, HEALTH_ECON_WEAK),
     }
