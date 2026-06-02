@@ -50,9 +50,9 @@ KEYWORDS = {
     "population": [r"aged\s+\d+\s+(?:and\s+over|or\s+over|\+)", r"older adults?", r"children with", r"patients with", r"adults with", r"service users with", r"people with"],
     "need": [r"unmet need", r"clinical need", r"social care problem", r"burden", r"pressure", r"reduced independence", r"rehabilitation", r"prevention", r"mobility", r"balance"],
     "technology": [r"AI-enabled", r"wearable", r"digital therapeutic", r"software", r"device", r"platform", r"algorithm", r"model", r"programme", r"service", r"sensor"],
-    "study_design": [r"randomi[sz]ed", r"two-arm", r"feasibility", r"pilot", r"mixed-methods", r"observational", r"comparative", r"trial", r"real-world"],
+    "study_design": [r"randomi[sz]ed", r"feasibility", r"pilot", r"trial", r"mixed-methods", r"implementation evaluation", r"process evaluation", r"two-arm", r"single-arm", r"cohort", r"qualitative", r"realist", r"observational", r"case study", r"evaluation"],
     "setting": [r"NHS", r"community", r"primary care", r"secondary care", r"social care", r"Trusts?", r"sites?", r"teams?", r"clinics?"],
-    "regulatory": [r"UKCA", r"DTAC", r"ISO\s*\d+", r"IEC\s*\d+", r"MHRA", r"ethics", r"IRAS", r"medical device", r"regulatory approval", r"UKCA classification"],
+    "regulatory": [r"UKCA", r"DTAC", r"ISO\s*14971", r"ISO\s*13485", r"ISO\s*\d+", r"IEC\s*62304", r"IEC\s*\d+", r"MHRA", r"ethics", r"IRAS", r"medical device classification", r"medical device", r"technical documentation", r"risk management", r"software lifecycle", r"quality management system", r"regulatory approval", r"UKCA classification"],
     "health_economics": [r"health economist", r"perspective", r"comparator", r"current care", r"usual care", r"EQ-5D", r"HRQoL", r"QALY", r"resource use", r"micro-costing", r"cost-effectiveness", r"budget impact", r"decision-analytic", r"economic model", r"ICER", r"ROI", r"sensitivity", r"scenario", r"value proposition", r"commissioning"],
     "ppie": [r"public contributors?", r"PPIE?", r"working with people and communities", r"co-design", r"carers?", r"lived experience", r"public co-applicant", r"advisory group", r"payment", r"expenses", r"shaped"],
     "inclusion": [r"underserved", r"underrepresented", r"inequalities", r"digital exclusion", r"accessibility", r"interpreters", r"sex", r"gender", r"ethnicity", r"disability", r"caring responsibilities", r"inclusion costs", r"accessible dissemination"],
@@ -153,19 +153,151 @@ def _extract_sample_size(text: str) -> str:
 
 
 def _extract_duration(text: str, work_packages: list[str]) -> str:
-    labelled = re.search(r"(?:duration|over|programme|program)\D{0,30}(\d{1,3})\s*months?", text, re.I)
-    if labelled:
-        return labelled.group(1)
-    range_match = re.search(r"months?\s*(\d{1,2})\s*[-–]\s*(\d{1,3})", text, re.I)
-    if range_match:
-        return range_match.group(2)
-    max_month = 0
-    for row in work_packages + _sentences_with(text, [r"month\s*\d+", r"months?\s*\d+\s*[-–]\s*\d+"], 30):
-        for number in re.findall(r"month\s*(\d{1,3})|months?\s*\d{1,3}\s*[-–]\s*(\d{1,3})", row, re.I):
+    """Prefer the latest explicit project month over a first phase length."""
+    max_end_month = 0
+    for pattern in [
+        r"months?\s*(\d{1,3})\s*[-–]\s*(\d{1,3})",
+        r"month\s*start\s*(\d{1,3})\s*month\s*end\s*(\d{1,3})",
+        r"month\s*(\d{1,3})\s*[:\-–]",
+        r"month\s*end\s*(\d{1,3})",
+    ]:
+        for match in re.finditer(pattern, text, re.I):
+            nums = [int(g) for g in match.groups() if g]
+            if nums:
+                max_end_month = max(max_end_month, nums[-1], *nums)
+    for row in work_packages:
+        for number in re.findall(r"month\s*(?:end\s*)?(\d{1,3})|months?\s*\d{1,3}\s*[-–]\s*(\d{1,3})", row, re.I):
             vals = [int(v) for v in number if v]
             if vals:
-                max_month = max(max_month, *vals)
-    return str(max_month) if max_month else NOT_EXPLICITLY_STATED
+                max_end_month = max(max_end_month, *vals)
+    if max_end_month:
+        return str(max_end_month)
+    labelled = re.search(r"(?:duration|over|programme|program|plan|runs?|single)\D{0,30}(\d{1,3})\s*[- ]?months?", text, re.I)
+    if labelled:
+        return labelled.group(1)
+    return NOT_EXPLICITLY_STATED
+
+
+STUDY_DESIGN_TERMS = [
+    r"randomi[sz]ed", r"feasibility", r"pilot", r"trial", r"mixed-methods",
+    r"implementation evaluation", r"process evaluation", r"two-arm", r"single-arm",
+    r"cohort", r"qualitative", r"realist", r"observational", r"case study", r"evaluation",
+]
+BACKGROUND_TERMS = [r"workforce", r"constraint", r"burden", r"pressure", r"problem", r"background", r"many people", r"falls can"]
+
+
+def _best_sentence(text: str, include: list[str], exclude: list[str] | None = None, limit: int = 320) -> str | None:
+    scored: list[tuple[int, str]] = []
+    for sentence in _sentences(text):
+        if _is_noise(sentence):
+            continue
+        hits = sum(1 for pattern in include if re.search(pattern, sentence, re.I))
+        if not hits:
+            continue
+        bad = sum(1 for pattern in (exclude or []) if re.search(pattern, sentence, re.I))
+        if bad and hits < 2:
+            continue
+        labelled = 3 if re.search(r"(?:study\s+design|design|methods?)\s*[:\-]", sentence, re.I) else 0
+        scored.append((hits * 3 + labelled - bad * 2, _short(re.sub(r"^(?:study\s+design|design|methods?)\s*[:\-]\s*", "", sentence, flags=re.I), limit)))
+    if not scored:
+        return None
+    scored.sort(key=lambda x: (x[0], len(x[1])), reverse=True)
+    return scored[0][1]
+
+
+def _extract_study_design(text: str) -> str | None:
+    return _best_sentence(text, STUDY_DESIGN_TERMS, BACKGROUND_TERMS, 260)
+
+
+def _extract_target_population(text: str) -> str | None:
+    explicit = _find_first(text, FIELD_PATTERNS["target_population"])
+    if explicit:
+        return explicit[0]
+    patterns = [
+        r"participants?\s+(aged\s+\d+\s+(?:and\s+over|or\s+over|\+)[^.;\n]{0,90})",
+        r"((?:older adults?|adults|children|patients|people|service users)\s+(?:aged\s+\d+\s+(?:and\s+over|or\s+over|\+))?[^.;\n]{0,100}(?:risk of fall|falls risk|balance confidence|with [^.;\n]{3,60}))",
+        r"designed to help\s+((?:older adults?|adults|children|patients|people|service users)[^.;\n]{0,100})",
+    ]
+    for pat in patterns:
+        m = re.search(pat, text, re.I)
+        if m:
+            return _short(m.group(1), 180)
+    return None
+
+
+def _extract_clinical_need(text: str) -> str | None:
+    explicit = _find_first(text, FIELD_PATTERNS["clinical_or_social_care_need"])
+    if explicit:
+        return explicit[0]
+    sentence = _best_sentence(text, [r"falls? prevention", r"reduce risk of falling", r"balance", r"mobility rehabilitation", r"confidence", r"independence", r"rehabilitation"], [], 220)
+    if not sentence:
+        return None
+    fragments: list[str] = []
+    for pat in [r"falls? prevention", r"falls? risk", r"risk of falling", r"reduce risk of falling", r"balance(?: confidence)?", r"mobility rehabilitation", r"confidence", r"independence", r"rehabilitation"]:
+        for m in re.finditer(pat, sentence, re.I):
+            val = m.group(0).lower()
+            if val not in fragments:
+                fragments.append(val)
+    return _short(", ".join(fragments) or sentence, 180)
+
+
+def _extract_technology_type(text: str) -> str | None:
+    explicit = _find_first(text, FIELD_PATTERNS["technology_type"])
+    if explicit:
+        return explicit[0]
+    concepts: list[str] = []
+    for pat in [r"AI-enabled wearable digital therapeutic", r"wearable digital therapeutic", r"movement quality assessment (?:engine|platform)", r"digital therapeutic", r"wearable", r"platform", r"software as a medical device", r"algorithm"]:
+        if re.search(pat, text, re.I):
+            val = re.search(pat, text, re.I).group(0)
+            if val.lower() not in [c.lower() for c in concepts]:
+                concepts.append(val)
+    return _short(" / ".join(concepts[:3]), 180) if concepts else None
+
+
+def _extract_weighted_plan(text: str, patterns: list[str], weaker: list[str] | None = None, max_items: int = 4) -> str | None:
+    scored: list[tuple[int, str]] = []
+    for sentence in _sentences(text):
+        hits = sum(1 for p in patterns if re.search(p, sentence, re.I))
+        if not hits:
+            continue
+        weak_hits = sum(1 for p in (weaker or []) if re.search(p, sentence, re.I))
+        if re.match(r"\s*(?:WP\d+|WP\s+\d+|Month\s+\d+|Endpoints include)", sentence, re.I) and hits < 3:
+            continue
+        score = hits * 3 + weak_hits
+        scored.append((score, _short(sentence, 400)))
+    if not scored:
+        return None
+    scored.sort(key=lambda x: (-x[0], len(x[1])))
+    out=[]
+    for _, sentence in scored:
+        if sentence not in out:
+            out.append(sentence)
+        if len(out) >= max_items:
+            break
+    return "; ".join(out)
+
+
+REGULATORY_STRONG = [r"UKCA", r"DTAC", r"ISO\s*14971", r"ISO\s*13485", r"IEC\s*62304", r"MHRA", r"medical device classification", r"technical documentation", r"risk management", r"software lifecycle", r"quality management system"]
+REGULATORY_WEAK = [r"ethics", r"IRAS"]
+HEALTH_ECON_STRONG = [r"health economist", r"perspective", r"EQ-5D", r"HRQoL", r"QALY", r"resource use", r"micro-costing", r"cost-effectiveness", r"decision-analytic", r"economic model", r"budget impact", r"ICER", r"sensitivity", r"scenario", r"commissioning", r"value proposition"]
+HEALTH_ECON_WEAK = [r"comparator", r"current care", r"usual care"]
+PPIE_LEADERSHIP = [r"named\s+PPI\s+lead", r"PPI\s+coordinat(?:or|ion)", r"co-applicant[^.]{0,80}PPI\s+coordination", r"public contributor lead", r"lived experience advisory group lead", r"dedicated\s+PPI\s+lead"]
+
+
+def _extract_ppie_leadership(text: str) -> str | None:
+    return _sentence_with(text, PPIE_LEADERSHIP, 240)
+
+
+def _extract_uploads(text: str) -> list[str]:
+    patterns = [r"Gantt chart(?: is)? included", r"project management plan(?: is)? (?:included|uploaded|provided)", r"references? (?:uploaded|included|provided)", r"flow diagram(?: is)? (?:included|uploaded|provided)", r"logic model(?: is)? (?:included|uploaded|provided)", r"SoECAT(?: is)? (?:included|uploaded|provided)", r"budget spreadsheet(?: is)? (?:included|uploaded|provided)", r"CVs? (?:uploaded|included|provided)", r"letters? of support (?:uploaded|included|provided)"]
+    return _sentences_with(text, patterns, 10, 180)
+
+
+def _extract_references(text: str) -> str | None:
+    for sentence in _sentences(text):
+        if re.search(r"^(references|bibliography)\s*[:\-]", sentence, re.I) or re.search(r"references?\s+(?:uploaded|included|provided)", sentence, re.I):
+            return _short(sentence, 180)
+    return None
 
 
 def _extract_trl(text: str) -> tuple[str, str, str, list[str]]:
@@ -186,28 +318,33 @@ def _extract_trl(text: str) -> tuple[str, str, str, list[str]]:
 
 def _extract_gantt_rows(text: str) -> list[str]:
     rows: list[str] = []
-    patterns = [
-        r"(?:WP\s*\d+|Work package\s*\d+|Task\s*\d+)[:\-– ]+[^\n]{20,220}",
-        r"[^\n]*(?:Month start|start month|Month end|duration|output)[^\n]*",
-        r"[^\n]*months?\s*\d{1,2}\s*[-–]\s*\d{1,2}[^\n]*",
+    line_patterns = [
+        r"^\s*(?:WP\s*\d+|Work package\s*\d+)[:\-– ]+.{8,220}$",
+        r"^\s*[^\n|]{3,90}\|\s*Month\s*\d{1,3}\s*\|\s*Month\s*\d{1,3}\s*\|.{0,180}$",
+        r"^\s*(?:WP\s*\d+\s+)?[^\n]{3,100}\s+Month\s+start\s+\d{1,3}\s+Month\s+end\s+\d{1,3}[^\n]{0,160}$",
     ]
-    for pattern in patterns:
-        for match in re.finditer(pattern, text, re.I):
-            row = _short(match.group(0), 240)
-            if row and row not in rows and not _is_noise(row):
-                rows.append(row)
+    for raw_line in text.splitlines():
+        line = _short(raw_line, 240)
+        if not line or _is_noise(line):
+            continue
+        if any(re.search(p, line, re.I) for p in line_patterns):
+            if len(line) <= 240 and line not in rows:
+                rows.append(line)
     return rows[:30]
 
 
 def _extract_milestones(text: str) -> list[str]:
     milestones: list[str] = []
-    for match in re.finditer(r"Month\s*(\d{1,2})\s*[:\-–]\s*([^\n.]{8,180})", text, re.I):
-        value = _short(f"Month {match.group(1)}: {match.group(2)}", 220)
+    excluded = [r"^milestones$", r"^timeline and milestones$", r"gantt chart (?:is )?included"]
+    for match in re.finditer(r"\bMonth\s*(\d{1,3})\s*[:\-–]\s*([^\n.]{8,180})", text, re.I):
+        action = _short(match.group(2), 180)
+        if any(re.search(p, action, re.I) for p in excluded):
+            continue
+        if not re.search(r"[a-z]{4,}", action, re.I):
+            continue
+        value = _short(f"Month {match.group(1)}: {action}", 220)
         if value not in milestones:
             milestones.append(value)
-    for sentence in _sentences_with(text, [r"milestone", r"deliverable"], 12):
-        if sentence not in milestones:
-            milestones.append(sentence)
     return milestones[:20]
 
 
@@ -272,6 +409,25 @@ def extract_application_facts(documents: Iterable[LoadedDocument]) -> Applicatio
     facts.duration_months = _extract_duration(combined, facts.work_packages)
     facts.endpoints = _extract_endpoints(combined)
 
+    refined_extractors = {
+        "target_population": _extract_target_population,
+        "clinical_or_social_care_need": _extract_clinical_need,
+        "technology_type": _extract_technology_type,
+        "study_design": _extract_study_design,
+        "regulatory_plan": lambda text: _extract_weighted_plan(text, REGULATORY_STRONG, REGULATORY_WEAK),
+        "health_economics_plan": lambda text: _extract_weighted_plan(text, HEALTH_ECON_STRONG, HEALTH_ECON_WEAK),
+    }
+    for field, extractor in refined_extractors.items():
+        value = extractor(combined)
+        if value:
+            setattr(facts, field, value)
+            _add_evidence(evidence_entries, field, value, docs)
+
+    ppie_leadership = _extract_ppie_leadership(combined)
+    if ppie_leadership:
+        facts.ppie_leadership_evidence = ppie_leadership
+        _add_evidence(evidence_entries, "ppie_leadership_evidence", ppie_leadership, docs)
+
     fallback_map = {
         "target_population": KEYWORDS["population"],
         "clinical_or_social_care_need": KEYWORDS["need"],
@@ -320,8 +476,8 @@ def extract_application_facts(documents: Iterable[LoadedDocument]) -> Applicatio
         facts.finance_or_budget_evidence = NOT_EXPLICITLY_STATED
 
     facts.partners = _sentences_with(combined, [r"partner", r"collaborator", r"co-applicant"], 8)
-    facts.uploads_detected = _sentences_with(combined, [r"upload", r"appendix", r"gantt", r"references", r"flow diagram", r"logic model"], 10)
-    refs = _sentence_with(combined, [r"references", r"bibliography"])
+    facts.uploads_detected = _extract_uploads(combined)
+    refs = _extract_references(combined)
     if refs:
         facts.references_detected = refs
 

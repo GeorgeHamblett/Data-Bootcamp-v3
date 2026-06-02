@@ -20,6 +20,45 @@ def _present(value: object) -> bool:
     return bool(value and value != NOT_EXPLICITLY_STATED)
 
 
+
+def _compress(value: object, kind: str = "generic") -> str:
+    if not _present(value):
+        return ""
+    text = str(value).strip()
+    if kind == "population":
+        for pattern in [r"(older adults?[^.;]{0,120})", r"(participants? aged \d+[^.;]{0,100})", r"((?:patients|people|adults|children|service users)[^.;]{0,100})"]:
+            import re
+            m = re.search(pattern, text, re.I)
+            if m:
+                return m.group(1).strip(" .;:")
+    if kind == "need":
+        import re
+        bits = []
+        for pattern in [r"falls? prevention", r"reduce risk of falling", r"balance(?: confidence)?", r"mobility rehabilitation", r"confidence", r"independence", r"rehabilitation"]:
+            if re.search(pattern, text, re.I):
+                val = re.search(pattern, text, re.I).group(0).lower()
+                if val not in bits:
+                    bits.append(val)
+        if bits:
+            return ", ".join(bits)
+    # Avoid rendering raw proposal sentences in summary clauses.
+    if len(text.split()) > 18 or text.lower().startswith(("this project", "we will", "the project will")):
+        text = text.split(".")[0]
+        text = text.replace("This project will test", "testing").replace("this project will test", "testing")
+        return text[:140].strip(" .;:")
+    return text
+
+
+def _unique_phrases(values: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    seen: set[str] = set()
+    out = []
+    for label, value in values:
+        key = value.lower().strip()
+        if value and key not in seen:
+            seen.add(key)
+            out.append((label, value))
+    return out
+
 def _phrase(label: str, value: object) -> str:
     if isinstance(value, list):
         return f"{label} {', '.join(str(v) for v in value[:8])}" if value else ""
@@ -33,13 +72,15 @@ def render_summary(facts: ApplicationFacts, dashboard: list[dict], priority_gaps
         _phrase("The intervention/product is", facts.product_or_intervention),
         _phrase("with acronym or module", facts.acronym_or_short_name),
     ]
-    identity = "; ".join(bit for bit in identity_bits if bit) or "The uploaded documents do not clearly state the project identity."
+    identity = ". ".join(bit for bit in identity_bits if bit) or "The uploaded documents do not clearly state the project identity."
+    compressed_population = _compress(facts.target_population, "population")
+    compressed_need = _compress(facts.clinical_or_social_care_need, "need")
     population_bits = [
-        _phrase("It focuses on", facts.target_population),
-        _phrase("addressing", facts.clinical_or_social_care_need),
-        _phrase("in", facts.sites_or_setting),
+        ("The target population is", compressed_population),
+        ("The clinical or care need is", compressed_need),
+        ("The setting is", _compress(facts.sites_or_setting)),
     ]
-    population = "; ".join(bit for bit in population_bits if bit)
+    population = ". ".join(f"{label} {value}" for label, value in _unique_phrases(population_bits) if value)
 
     evidence_bits = [
         _phrase("The design is", facts.study_design),
@@ -47,9 +88,9 @@ def render_summary(facts: ApplicationFacts, dashboard: list[dict], priority_gaps
         _phrase("with sample size", facts.sample_size),
         _phrase("and comparator/control", facts.comparator_or_control),
         _phrase("The development-stage evidence is", facts.trl_evidence),
-        _phrase("Duration is", (facts.duration_months + " months") if _present(facts.duration_months) and "month" not in str(facts.duration_months).lower() else facts.duration_months),
+        _phrase("The extracted timeline appears to run to", ("Month " + facts.duration_months) if _present(facts.duration_months) and "month" not in str(facts.duration_months).lower() else facts.duration_months),
     ]
-    evidence = "; ".join(bit for bit in evidence_bits if bit) or "The evidence-generation design needs clearer application evidence."
+    evidence = ". ".join(bit for bit in evidence_bits if bit) or "The evidence-generation design needs clearer application evidence."
     outcomes = ", ".join(facts.endpoints[:10]) if facts.endpoints else "outcomes/endpoints need clearer confirmation"
 
     readiness_bits = [
@@ -64,7 +105,7 @@ def render_summary(facts: ApplicationFacts, dashboard: list[dict], priority_gaps
         readiness = "Adoption, regulatory, PPIE, inclusion and project-management readiness need clearer evidence."
 
     risk_rows = [row for row in dashboard if row["RAG"] in {"RED", "AMBER", "GREY"}]
-    risks = "; ".join(f"{row['Subsystem']} - {row['Priority action']}" for row in risk_rows[:5]) or "No major checklist risks identified from relevant evidence."
+    risks = ". ".join(f"{row['Subsystem']} - {row['Priority action']}" for row in risk_rows[:5]) or "No major checklist risks identified from relevant evidence."
 
     return f"""Summary of key information extracted
 

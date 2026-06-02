@@ -33,3 +33,17 @@ def test_priority_missing_evidence_uses_actions_not_portal_text():
     assert "fill in" not in priority
     assert "save draft" not in priority
     assert "add or verify" in priority or "upload or verify" in priority
+
+from tests.fixtures import STEPRIGHT_APP, STEPRIGHT_GANTT
+from application_facts import extract_application_facts
+from document_loader import LoadedDocument
+
+
+def test_summary_polishes_raw_sentences_and_uses_duration_24():
+    facts = extract_application_facts([LoadedDocument("app.txt", STEPRIGHT_APP), LoadedDocument("gantt.txt", STEPRIGHT_GANTT)])
+    dash = build_rag_dashboard(build_checklist(facts, derived_reviewer_requirements()), facts)
+    summary = render_summary(facts, dash, "")
+    assert "focuses on This project" not in summary
+    assert "addressing This project" not in summary
+    assert summary.count("This project will test") < 2
+    assert "Month 24" in summary
