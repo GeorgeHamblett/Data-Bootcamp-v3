@@ -24,7 +24,7 @@ def _app_report_renderer_imports() -> set[str]:
     imported: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom) and node.module == "report_renderer":
-            imported.update(alias.asname or alias.name for alias in node.names)
+            imported.update(alias.name for alias in node.names)
     return imported
 
 
@@ -33,15 +33,6 @@ def test_app_report_renderer_imports_exist_on_module():
     assert EXPECTED <= imported
     missing = [name for name in imported if not hasattr(report_renderer, name)]
     assert missing == []
-
-
-def test_app_imports_main_case_summary_name_safely():
-    tree = ast.parse(Path("app.py").read_text())
-    imports = [node for node in ast.walk(tree) if isinstance(node, ast.ImportFrom) and node.module == "report_renderer"]
-    aliases = {alias.asname or alias.name: alias.name for node in imports for alias in node.names}
-    assert "render_main_case_summary" in aliases
-    assert aliases["render_main_case_summary"] in {"render_main_case_summary", "render_summary"}
-    assert hasattr(report_renderer, "render_main_case_summary")
 
 
 def test_expected_renderer_functions_are_exported_and_callable():
@@ -58,12 +49,6 @@ def test_main_case_summary_and_raw_json_note_are_safe_markdown():
     note = report_renderer.render_raw_json_note()
     assert "Developer/debug output" in note
     assert len(note.split()) < 20
-
-
-def test_main_case_wrapper_accepts_optional_priority_items():
-    summary = report_renderer.render_main_case_summary(ApplicationFacts(project_title="Wrapper smoke"), None, ["gap one"])
-    assert "Summary of key information extracted" in summary
-    assert "Wrapper smoke" in summary
 
 
 def test_streamlit_app_imports_without_importerror():

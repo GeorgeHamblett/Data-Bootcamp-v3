@@ -225,43 +225,19 @@ def _extract_target_population(text: str) -> str | None:
     return None
 
 
-def _need_fragments(text: str) -> list[str]:
-    fragments: list[str] = []
-    phrase_map = [
-        (r"falls? prevention", "falls prevention"),
-        (r"falls? risk|risk of falling|reduce risk of falling", "falls risk / prevention"),
-        (r"balance", "balance"),
-        (r"mobility rehabilitation", "mobility rehabilitation"),
-        (r"confidence", "confidence"),
-        (r"independence|reduced independence", "independence"),
-        (r"\brehabilitation\b", "rehabilitation"),
-    ]
-    for pattern, label in phrase_map:
-        if label == "falls risk / prevention" and "falls prevention" in fragments:
-            continue
-        if re.search(pattern, text, re.I) and label not in fragments:
-            fragments.append(label)
-    if "mobility rehabilitation" in fragments and "rehabilitation" in fragments:
-        fragments.remove("rehabilitation")
-    return fragments
-
-
 def _extract_clinical_need(text: str) -> str | None:
     explicit = _find_first(text, FIELD_PATTERNS["clinical_or_social_care_need"])
     if explicit:
-        fragments = _need_fragments(explicit[0])
-        # Pull in closely related need terms elsewhere in the application without copying whole sentences.
-        for extra in _need_fragments(text):
-            if extra not in fragments and len(fragments) < 6:
-                fragments.append(extra)
-        return _short(", ".join(fragments) or explicit[0], 180)
-    sentence = _best_sentence(text, [r"falls? prevention", r"falls? risk", r"reduce risk of falling", r"balance", r"mobility rehabilitation", r"confidence", r"independence", r"rehabilitation"], [], 220)
+        return explicit[0]
+    sentence = _best_sentence(text, [r"falls? prevention", r"reduce risk of falling", r"balance", r"mobility rehabilitation", r"confidence", r"independence", r"rehabilitation"], [], 220)
     if not sentence:
         return None
-    fragments = _need_fragments(sentence)
-    for extra in _need_fragments(text):
-        if extra not in fragments and len(fragments) < 6:
-            fragments.append(extra)
+    fragments: list[str] = []
+    for pat in [r"falls? prevention", r"falls? risk", r"risk of falling", r"reduce risk of falling", r"balance(?: confidence)?", r"mobility rehabilitation", r"confidence", r"independence", r"rehabilitation"]:
+        for m in re.finditer(pat, sentence, re.I):
+            val = m.group(0).lower()
+            if val not in fragments:
+                fragments.append(val)
     return _short(", ".join(fragments) or sentence, 180)
 
 
@@ -276,28 +252,6 @@ def _extract_technology_type(text: str) -> str | None:
             if val.lower() not in [c.lower() for c in concepts]:
                 concepts.append(val)
     return _short(" / ".join(concepts[:3]), 180) if concepts else None
-
-
-def _extract_setting(text: str) -> str | None:
-    explicit = _find_first(text, FIELD_PATTERNS["sites_or_setting"])
-    if explicit:
-        return explicit[0]
-    candidates: list[tuple[int, str]] = []
-    for sentence in _sentences(text):
-        if re.search(r"\bpartners? include\b", sentence, re.I):
-            continue
-        hits = sum(1 for p in [r"NHS", r"community rehabilitation", r"primary care", r"secondary care", r"social care", r"sites?", r"Trusts?", r"clinics?", r"teams?"] if re.search(p, sentence, re.I))
-        if hits:
-            candidates.append((hits, _short(sentence, 180)))
-    if not candidates:
-        return None
-    candidates.sort(key=lambda item: (-item[0], len(item[1])))
-    best = candidates[0][1]
-    for pattern in [r"NHS community rehabilitation services?", r"community rehabilitation (?:services|teams|clinics)", r"primary care", r"secondary care", r"social care"]:
-        match = re.search(pattern, best, re.I)
-        if match:
-            return _short(match.group(0), 120)
-    return best
 
 
 def _extract_weighted_plan(text: str, patterns: list[str], weaker: list[str] | None = None, max_items: int = 4) -> str | None:
@@ -335,7 +289,7 @@ def _extract_ppie_leadership(text: str) -> str | None:
 
 
 def _extract_uploads(text: str) -> list[str]:
-    patterns = [r"Gantt chart(?: is)? included", r"project management plan(?: is)? (?:included|uploaded|provided)", r"references?\s*[:\-]?\s*(?:uploaded|included|provided)", r"flow diagram(?: is)? (?:included|uploaded|provided)", r"logic model(?: is)? (?:included|uploaded|provided)", r"SoECAT(?: is)? (?:included|uploaded|provided)", r"budget spreadsheet(?: is)? (?:included|uploaded|provided)", r"CVs? (?:uploaded|included|provided)", r"letters? of support (?:uploaded|included|provided)"]
+    patterns = [r"Gantt chart(?: is)? included", r"project management plan(?: is)? (?:included|uploaded|provided)", r"references? (?:uploaded|included|provided)", r"flow diagram(?: is)? (?:included|uploaded|provided)", r"logic model(?: is)? (?:included|uploaded|provided)", r"SoECAT(?: is)? (?:included|uploaded|provided)", r"budget spreadsheet(?: is)? (?:included|uploaded|provided)", r"CVs? (?:uploaded|included|provided)", r"letters? of support (?:uploaded|included|provided)"]
     return _sentences_with(text, patterns, 10, 180)
 
 
@@ -469,7 +423,6 @@ def extract_application_facts(documents: Iterable[LoadedDocument]) -> Applicatio
         "clinical_or_social_care_need": _extract_clinical_need,
         "technology_type": _extract_technology_type,
         "study_design": _extract_study_design,
-        "sites_or_setting": _extract_setting,
         "regulatory_plan": lambda text: _extract_weighted_plan(text, REGULATORY_STRONG, REGULATORY_WEAK),
         "health_economics_plan": lambda text: _extract_weighted_plan(text, HEALTH_ECON_STRONG, HEALTH_ECON_WEAK),
     }

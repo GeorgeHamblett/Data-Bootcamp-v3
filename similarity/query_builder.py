@@ -52,7 +52,7 @@ def _clean(term: str) -> str:
     cleaned = re.sub(r"^(?:this project will|this proposal will|we will)\b", " ", cleaned, flags=re.I)
     cleaned = cleaned.replace("/", " / ")
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" .;:,\n\t")
-    return cleaned.strip(" ,;:-/")
+    return cleaned[:MAX_TERM_CHARS].strip(" ,;:-/")
 
 
 def _sentence_like(value: str) -> bool:
@@ -64,7 +64,7 @@ def _dedupe_add(candidates: list[str], value: str) -> None:
     key = normalise(value)
     if not value or value == NOT_EXPLICITLY_STATED or is_generic_term(value):
         return
-    if key in {"ai-enabled", "ai-enabled wearable", "enabled wearable digital therapeutic"} or key.startswith("enabled "):
+    if key in {"ai-enabled", "enabled wearable digital therapeutic"} or key.startswith("enabled "):
         return
     if len(value) > MAX_TERM_CHARS or len(value.split()) > 5:
         return
@@ -86,13 +86,9 @@ def _concepts_from_value(value: str) -> list[str]:
     # Product/acronym-style names are allowed if concise.
     if not _sentence_like(value):
         _dedupe_add(concepts, value)
-    if re.search(r"balance", value, re.I) and re.search(r"rehabilitation", value, re.I):
-        _dedupe_add(concepts, "balance rehabilitation")
     for phrase in PREFERRED_PHRASES:
         m = re.search(phrase, value, re.I)
         if m:
-            if normalise(m.group(0)) == "mobility rehabilitation" and any(normalise(c) == "balance rehabilitation" for c in concepts):
-                continue
             _dedupe_add(concepts, m.group(0))
     for pattern in [
         r"\b[A-Z][A-Z0-9-]{2,10}\b",
@@ -101,8 +97,6 @@ def _concepts_from_value(value: str) -> list[str]:
         r"\b(?:[a-z]+\s+){0,3}(?:platform|engine|sensor|device|therapeutic|rehabilitation)\b",
     ]:
         for m in re.finditer(pattern, value):
-            if normalise(m.group(0)) == "mobility rehabilitation" and any(normalise(c) == "balance rehabilitation" for c in concepts):
-                continue
             _dedupe_add(concepts, m.group(0))
     return concepts
 
@@ -139,7 +133,7 @@ def build_similarity_query(facts: ApplicationFacts, snippets: list[str] | None =
     for field in ["product_or_intervention", "acronym_or_short_name", "technology_type", "clinical_or_social_care_need", "target_population", "mechanism_of_action"]:
         for concept in _concepts_from_value(str(getattr(facts, field, NOT_EXPLICITLY_STATED))):
             _dedupe_add(primary, concept)
-    for field in ["sites_or_setting", "market_or_impact_evidence"]:
+    for field in ["sites_or_setting", "market_or_impact_evidence", "comparator_or_control"]:
         for concept in _concepts_from_value(str(getattr(facts, field, NOT_EXPLICITLY_STATED))):
             _dedupe_add(secondary, concept)
     # Endpoints are weak context; include only non-generic, distinctive terms if room remains.

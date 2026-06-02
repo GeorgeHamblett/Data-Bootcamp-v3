@@ -25,46 +25,6 @@ def _present(value: object) -> bool:
     return bool(value and value != NOT_EXPLICITLY_STATED)
 
 
-def _safe(value: object, fallback: str = NOT_EXPLICITLY_STATED) -> str:
-    if not _present(value):
-        return fallback
-    if isinstance(value, list):
-        return ", ".join(str(v) for v in value if _present(v)) or fallback
-    return str(value).strip() or fallback
-
-
-def _truncate_words(text: str, max_words: int = 35) -> str:
-    words = re.sub(r"\s+", " ", text).strip().split()
-    if len(words) <= max_words:
-        return " ".join(words)
-    return " ".join(words[:max_words]).rstrip(" ,;:-") + "…"
-
-
-def _dedupe_repeated_phrases(text: str) -> str:
-    parts = [p.strip() for p in re.split(r"\s*,\s*", text) if p.strip()]
-    out: list[str] = []
-    for part in parts:
-        key = part.lower()
-        if key not in {x.lower() for x in out}:
-            out.append(part)
-    return ", ".join(out) if len(out) > 1 else text
-
-
-def clean_table_evidence(raw_evidence: object, checklist_area: str = "", requirement: str = "") -> str:
-    """Shorten table evidence while leaving full detail for raw JSON."""
-    if isinstance(raw_evidence, list):
-        text = "; ".join(str(v) for v in raw_evidence if _present(v))
-    else:
-        text = str(raw_evidence or "")
-    if not text or text == NOT_EXPLICITLY_STATED:
-        return NOT_EXPLICITLY_STATED
-    chunks = [c.strip() for c in re.split(r"\s*;\s*", text) if c.strip()]
-    text = chunks[0] if chunks else text
-    text = re.sub(r"\b(\w+)(,\s*\1\b)+", r"\1", text, flags=re.I)
-    text = _dedupe_repeated_phrases(text)
-    text = re.sub(r"\bto intervent\b", "to intervention", text, flags=re.I)
-    return _truncate_words(text.strip(" .;:"), 35)
-
 
 def _compress(value: object, kind: str = "generic") -> str:
     if not _present(value):
@@ -72,31 +32,21 @@ def _compress(value: object, kind: str = "generic") -> str:
     text = str(value).strip()
     if kind == "population":
         for pattern in [r"(older adults?[^.;]{0,120})", r"(participants? aged \d+[^.;]{0,100})", r"((?:patients|people|adults|children|service users)[^.;]{0,100})"]:
+            import re
             m = re.search(pattern, text, re.I)
             if m:
                 return m.group(1).strip(" .;:")
     if kind == "need":
+        import re
         bits = []
-        labels = [
-            (r"falls? prevention|falls? risk|risk of falling", "falls prevention"),
-            (r"balance", "balance"),
-            (r"mobility rehabilitation", "mobility rehabilitation"),
-            (r"confidence", "confidence"),
-            (r"independence", "independence"),
-            (r"\brehabilitation\b", "rehabilitation"),
-        ]
-        for pattern, label in labels:
-            if re.search(pattern, text, re.I) and label not in bits:
-                bits.append(label)
-        if "mobility rehabilitation" in bits and "rehabilitation" in bits:
-            bits.remove("rehabilitation")
+        for pattern in [r"falls? prevention", r"reduce risk of falling", r"balance(?: confidence)?", r"mobility rehabilitation", r"confidence", r"independence", r"rehabilitation"]:
+            if re.search(pattern, text, re.I):
+                val = re.search(pattern, text, re.I).group(0).lower()
+                if val not in bits:
+                    bits.append(val)
         if bits:
             return ", ".join(bits)
-    if kind == "setting":
-        for pattern in [r"NHS community rehabilitation services?", r"community rehabilitation (?:services|teams|clinics)", r"primary care", r"secondary care", r"social care"]:
-            m = re.search(pattern, text, re.I)
-            if m:
-                return m.group(0)
+    # Avoid rendering raw proposal sentences in summary clauses.
     if len(text.split()) > 18 or text.lower().startswith(("this project", "we will", "the project will")):
         text = text.split(".")[0]
         text = text.replace("This project will test", "testing").replace("this project will test", "testing")
@@ -104,85 +54,83 @@ def _compress(value: object, kind: str = "generic") -> str:
     return text
 
 
-def _bullet(label: str, value: object, kind: str = "generic") -> str:
-    text = _compress(value, kind) if kind != "generic" else _safe(value)
-    return f"- **{label}:** {text}" if _present(text) and text != NOT_EXPLICITLY_STATED else f"- **{label}:** {NOT_EXPLICITLY_STATED}"
-
-
-def _counts_by_rag(items: list[ChecklistItem] | list[dict]) -> Counter:
-    counts: Counter = Counter({"GREEN": 0, "AMBER": 0, "RED": 0, "GREY": 0})
-    for item in items:
-        rag = item.rag if isinstance(item, ChecklistItem) else str(item.get("RAG", item.get("rag", "")))
-        if rag in counts:
-            counts[rag] += 1
-    return counts
-
-
-def _top_actions_from_items(items: list[ChecklistItem], rags: set[str], limit: int = 5) -> list[str]:
-    out: list[str] = []
-    for item in items:
-        if item.rag in rags:
-            action = _action(item)
-            if action not in out:
-                out.append(action)
-        if len(out) >= limit:
-            break
+def _unique_phrases(values: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    seen: set[str] = set()
+    out = []
+    for label, value in values:
+        key = value.lower().strip()
+        if value and key not in seen:
+            seen.add(key)
+            out.append((label, value))
     return out
 
-
-def _lines(entries: list[str]) -> str:
-    return "\n".join(f"- {entry}" for entry in entries) if entries else "- None identified from available evidence."
-
-
-def _dashboard_groups(dashboard: list[dict]) -> dict[str, list[str]]:
-    return {
-        rag: [str(row.get("Subsystem", "")) for row in dashboard if row.get("RAG") == rag]
-        for rag in ["GREEN", "AMBER", "RED", "GREY"]
-    }
+def _phrase(label: str, value: object) -> str:
+    if isinstance(value, list):
+        return f"{label} {', '.join(str(v) for v in value[:8])}" if value else ""
+    return f"{label} {value}" if _present(value) else ""
 
 
-def render_summary(facts: ApplicationFacts, dashboard: list[dict] | None = None, priority_gaps: str = "") -> str:
-    dashboard = dashboard or []
-    risk_rows = [row for row in dashboard if row.get("RAG") in {"RED", "AMBER", "GREY"}]
-    risk_lines = [f"{row.get('Subsystem')} — {row.get('Priority action', 'Review evidence.')}" for row in risk_rows[:4]]
-    duration = f"Month {facts.duration_months}" if _present(facts.duration_months) and "month" not in str(facts.duration_months).lower() else _safe(facts.duration_months)
-    return f"""# Summary of key information extracted
+def render_summary(facts: ApplicationFacts, dashboard: list[dict], priority_gaps: str) -> str:
+    identity_bits = [
+        _phrase("The project title is", facts.project_title),
+        _phrase("The application is linked to", facts.application_claimed_call),
+        _phrase("The intervention/product is", facts.product_or_intervention),
+        _phrase("The acronym or module is", facts.acronym_or_short_name),
+    ]
+    identity = ". ".join(bit for bit in identity_bits if bit) or "The uploaded documents do not clearly state the project identity."
+    compressed_population = _compress(facts.target_population, "population")
+    compressed_need = _compress(facts.clinical_or_social_care_need, "need")
+    population_bits = [
+        ("The target population is", compressed_population),
+        ("The clinical or care need is", compressed_need),
+        ("The setting is", _compress(facts.sites_or_setting)),
+    ]
+    population = ". ".join(f"{label} {value}" for label, value in _unique_phrases(population_bits) if value)
 
-## Project at a glance
-- **Project:** {_safe(facts.project_title)}
-- **Call:** {_safe(facts.application_claimed_call)}
-- **Intervention/product:** {_safe(facts.product_or_intervention)} ({_safe(facts.acronym_or_short_name)})
-{_bullet("Target population", facts.target_population, "population")}
-{_bullet("Clinical or care need", facts.clinical_or_social_care_need, "need")}
-{_bullet("Setting", facts.sites_or_setting, "setting")}
+    evidence_bits = [
+        _phrase("The design is", facts.study_design),
+        _phrase("using", facts.methodology),
+        _phrase("with sample size", facts.sample_size),
+        _phrase("and comparator/control", facts.comparator_or_control),
+        _phrase("The development-stage evidence is", facts.trl_evidence),
+        _phrase("The extracted timeline appears to run to", ("Month " + facts.duration_months) if _present(facts.duration_months) and "month" not in str(facts.duration_months).lower() else facts.duration_months),
+    ]
+    evidence = ". ".join(bit for bit in evidence_bits if bit) or "The evidence-generation design needs clearer application evidence."
+    outcomes = ", ".join(facts.endpoints[:10]) if facts.endpoints else "outcomes/endpoints need clearer confirmation"
 
-## Proposed evidence generation
-- **Study design:** {_safe(facts.study_design)}
-- **Sample and comparator:** {_safe(facts.sample_size)}; comparator/control: {_safe(facts.comparator_or_control)}
-- **Timeline:** the extracted timeline appears to run to {duration}.
-- **Endpoints/outcomes:** {_truncate_words(_safe(facts.endpoints), 30)}
+    readiness_bits = [
+        _phrase("Regulatory/adoption evidence includes", facts.regulatory_plan),
+        _phrase("Health economics evidence includes", facts.health_economics_plan),
+        _phrase("PPIE evidence includes", facts.ppie_plan),
+        _phrase("Research inclusion evidence includes", facts.research_inclusion_plan),
+        _phrase("Project management evidence includes", facts.project_management_plan),
+    ]
+    readiness = " ".join(bit + "." for bit in readiness_bits if bit)
+    if not readiness:
+        readiness = "Adoption, regulatory, PPIE, inclusion and project-management readiness need clearer evidence."
 
-## Adoption and delivery readiness
-- **Regulatory/compliance:** {_truncate_words(_safe(facts.regulatory_plan), 30)}
-- **Health economics:** {_truncate_words(_safe(facts.health_economics_plan), 30)}
-- **PPIE and inclusion:** {_truncate_words(_safe(facts.ppie_plan), 20)}; {_truncate_words(_safe(facts.research_inclusion_plan), 20)}
-- **Project management:** {_truncate_words(_safe(facts.project_management_plan), 30)}
-- Built-in NIHR/RSS guidance is used as checklist guidance only, not as application evidence.
+    risk_rows = [row for row in dashboard if row["RAG"] in {"RED", "AMBER", "GREY"}]
+    risks = ". ".join(f"{row['Subsystem']} - {row['Priority action']}" for row in risk_rows[:5]) or "No major checklist risks identified from relevant evidence."
 
-## Main RSS checklist risks
-{_lines(risk_lines)}
+    return f"""Summary of key information extracted
+
+1. Project at a glance
+{identity}. {population}. The summary is based on the runtime application and supporting documents only; built-in NIHR/RSS guidance is used as checklist guidance, not as application evidence. Where source documents include workplans or appendices, those supporting documents are considered alongside the main application text.
+
+2. Proposed evidence generation
+{evidence}. Extracted endpoints and outcome measures include {outcomes}. These facts are used to judge clinical validation only where they directly match the requirement being checked, so a duration, Gantt row or outcome measure is not reused to satisfy unrelated applicant, finance or eligibility requirements.
+
+3. Adoption and delivery readiness
+{readiness} Finance is considered separately from health economics: economic modelling, EQ-5D/QALY or cost-effectiveness wording supports health economics, while Finance requires actual budget, cost-category, rate, cap, AcoRD, SoECAT or cost-justification evidence.
+
+4. Main RSS checklist risks
+The main adviser risks are: {risks}. The Priority Missing Evidence tab translates these into practical actions, such as verifying AI-use and conflicts declarations, named PPI leadership/payment, call-specific uploads, references, and detailed budget/AcoRD/SoECAT evidence where applicable. Items marked missing, partially present or needing human check should be resolved against the uploaded application and the specific funding call rather than against generic guidance text.
 """
 
 
-def render_main_case_summary(facts: ApplicationFacts, dashboard: list[dict] | None = None, priority_items: object = None, *args: object, **kwargs: object) -> str:
-    """Compatibility wrapper for app imports expecting the main Summary tab renderer."""
-    dashboard = dashboard or []
-    priority_gaps = kwargs.get("priority_gaps", "")
-    if not priority_gaps:
-        priority_gaps = priority_items or ""
-    if not isinstance(priority_gaps, str):
-        priority_gaps = str(priority_gaps)
-    return render_summary(facts, dashboard, priority_gaps)
+def render_summary(facts: ApplicationFacts, dashboard: list[dict], priority_gaps: str = "") -> str:
+    """Backward-compatible alias for the Summary tab renderer."""
+    return render_main_case_summary(facts, dashboard, priority_gaps)
 
 
 def render_checklist_report_summary(items: list[ChecklistItem], facts: ApplicationFacts | None = None) -> str:

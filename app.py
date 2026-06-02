@@ -13,12 +13,11 @@ from report_renderer import (
     raw_json_payload,
     render_checklist_report_summary,
     render_executive_review_note,
-    render_summary as render_main_case_summary,
+    render_main_case_summary,
     render_priority_missing_evidence,
     render_rag_dashboard_summary,
     render_raw_json_note,
     render_similarity_check_summary,
-    render_table_display_dataframe,
     similarity_table_rows,
 )
 from settings import Settings
