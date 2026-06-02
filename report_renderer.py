@@ -172,46 +172,6 @@ def clean_table_evidence(value: object, area: str = "", requirement: str = "") -
     return cleaned[:500]
 
 
-
-def _safe(value: object) -> str:
-    """Return a readable fallback for missing extracted values."""
-    return clean_table_evidence(value)
-
-
-def _counts_by_rag(items: list[ChecklistItem]) -> dict[str, int]:
-    """Count checklist items by RAG status with stable zero defaults."""
-    counts = Counter(item.rag for item in items)
-    return {rag: counts.get(rag, 0) for rag in ("GREEN", "AMBER", "RED", "GREY")}
-
-
-def _top_actions_from_items(items: list[ChecklistItem], rags: set[str], limit: int) -> list[str]:
-    """Return deduplicated adviser actions for checklist items matching the requested RAG statuses."""
-    actions: list[str] = []
-    seen: set[str] = set()
-    for item in items:
-        if item.rag not in rags:
-            continue
-        action = _action(item)
-        key = action.lower()
-        if key not in seen:
-            seen.add(key)
-            actions.append(action)
-        if len(actions) >= limit:
-            break
-    return actions
-
-
-def _dashboard_groups(dashboard: list[dict]) -> dict[str, list[str]]:
-    """Group dashboard subsystem names by RAG status for summaries."""
-    groups: dict[str, list[str]] = {rag: [] for rag in ("GREEN", "AMBER", "RED", "GREY")}
-    for row in dashboard:
-        rag = str(row.get("RAG", "GREY") or "GREY").upper()
-        subsystem = str(row.get("Subsystem", "")).strip()
-        if not subsystem:
-            continue
-        groups.setdefault(rag, []).append(subsystem)
-    return groups
-
 def render_checklist_report_summary(items: list[ChecklistItem], facts: ApplicationFacts | None = None) -> str:
     counts = _counts_by_rag(items)
     strongest = sorted({item.area for item in items if item.rag == "GREEN"})[:5]
