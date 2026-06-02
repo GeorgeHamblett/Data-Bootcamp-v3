@@ -218,7 +218,7 @@ def render_checklist_report_summary(items: list[ChecklistItem], facts: Applicati
 
 
 def render_rag_dashboard_summary(dashboard: list[dict]) -> str:
-    groups = _dashboard_groups(dashboard)
+    groups = group_dashboard_by_rag(dashboard)
     red = groups["RED"]
     amber = groups["AMBER"]
     profile = "high risk" if red else "moderate risk" if amber else "lower risk"
@@ -413,6 +413,7 @@ __all__ = (
     "checklist_table_rows",
     "clean_table_evidence",
     "dashboard_table_rows",
+    "group_dashboard_by_rag",
     "raw_json_payload",
     "render_summary",
     "similarity_table_rows",
