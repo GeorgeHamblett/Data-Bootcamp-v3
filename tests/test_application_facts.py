@@ -64,3 +64,92 @@ def test_stepright_regression_generic_extraction():
     assert any("Month 24" in m for m in facts.milestones)
     assert facts.ai_use_declaration == NOT_EXPLICITLY_STATED
     assert facts.conflicts_declaration == NOT_EXPLICITLY_STATED
+
+
+def extract_text(text):
+    return extract_application_facts([LoadedDocument("app.txt", text)])
+
+
+def test_duration_prefers_max_project_month_evidence():
+    facts = extract_text("Phase 1 months 1-10 and Phase 2 months 11-24. The first phase is 10 months.")
+    assert facts.duration_months == "24"
+
+
+def test_gantt_rows_ending_month_24_drive_duration():
+    facts = extract_text("Gantt/workplan\nProject set-up and governance | Month 1 | Month 2 | 2 months | documents\nAnalysis | Month 18 | Month 24 | 7 months | final report")
+    assert facts.duration_months == "24"
+
+
+def test_single_ten_month_plan_only_without_later_month():
+    facts = extract_text("This is a single 10-month plan with no later milestone evidence.")
+    assert facts.duration_months == "10"
+
+
+def test_study_design_selected_over_background():
+    facts = extract_text("Workforce constraints and falls pressure are severe. Study design: two-arm randomised feasibility evaluation with mixed-methods follow-up.")
+    assert "two-arm randomised feasibility" in facts.study_design.lower()
+    assert "workforce" not in facts.study_design.lower()
+
+
+def test_background_sentence_not_study_design():
+    facts = extract_text("Workforce constraints create a problem for rehabilitation services. Falls can seriously affect independence.")
+    assert facts.study_design == NOT_EXPLICITLY_STATED
+
+
+def test_population_need_and_technology_are_concise_distinct():
+    text = "The intervention is designed to help older adults improve balance and reduce risk of falling. Participants aged 60 and over with recent falls risk and reduced balance confidence will be recruited. It is an AI-enabled wearable digital therapeutic using a movement quality assessment engine."
+    facts = extract_text(text)
+    assert "older adults" in facts.target_population.lower() or "aged 60" in facts.target_population.lower()
+    assert "balance" in facts.clinical_or_social_care_need.lower() and "fall" in facts.clinical_or_social_care_need.lower()
+    assert "ai-enabled wearable digital therapeutic" in facts.technology_type.lower()
+    assert facts.target_population != facts.clinical_or_social_care_need != facts.technology_type
+
+
+def test_regulatory_stronger_evidence_not_hidden_by_ethics():
+    facts = extract_text("Month 13: Ethics and site approvals complete. Regulatory plan includes UKCA, DTAC, ISO 14971, ISO 13485 and IEC 62304 technical documentation.")
+    assert "UKCA" in facts.regulatory_plan and "DTAC" in facts.regulatory_plan
+    assert "ISO" in facts.regulatory_plan or "IEC" in facts.regulatory_plan
+
+
+def test_health_economics_prefers_modelling_resource_use_budget_impact():
+    facts = extract_text("Comparator: usual care in community rehabilitation. Health economics will include EQ-5D-5L, resource use, micro-costing, an early decision-analytic model and exploratory budget impact analysis for cost-effectiveness.")
+    assert "usual care" not in facts.health_economics_plan.lower()[:30]
+    assert "resource use" in facts.health_economics_plan.lower()
+    assert "budget impact" in facts.health_economics_plan.lower()
+
+
+def test_work_packages_only_structured_rows_and_deduped():
+    text = """
+    Implementation paragraphs mention WP3 and WP4 but are not rows and should not be extracted as work package items because they are long narrative text about inclusion and knowledge mobilisation.
+    WP1: Project setup and governance
+    WP2: Algorithm development
+    Project set-up and governance | Month 1 | Month 2 | 2 months | Sponsor documents
+    Project set-up and governance | Month 1 | Month 2 | 2 months | Sponsor documents
+    """
+    facts = extract_text(text)
+    assert any(row.startswith("WP1") for row in facts.work_packages)
+    assert any("| Month 1 | Month 2" in row for row in facts.work_packages)
+    assert len(facts.work_packages) == len(set(facts.work_packages))
+    assert not any(row.startswith("Implementation paragraphs") for row in facts.work_packages)
+
+
+def test_milestones_exclude_headings_and_generic_gantt_text():
+    facts = extract_text("Milestones\nTimeline and milestones\nA Gantt chart is included.\nMonth 8: Algorithm validated to acceptable threshold")
+    assert "Month 8: Algorithm validated to acceptable threshold" in facts.milestones
+    assert "Milestones" not in facts.milestones
+    assert "Timeline and milestones" not in facts.milestones
+    assert not any("Gantt chart" in m for m in facts.milestones)
+
+
+def test_upload_and_reference_detection_no_knowledge_false_positive():
+    facts = extract_text("Communication preferences and knowledge mobilisation will be discussed. A Gantt chart is included. References uploaded.")
+    assert facts.references_detected != NOT_EXPLICITLY_STATED
+    assert any("Gantt chart" in u for u in facts.uploads_detected)
+    neg = extract_text("Communication preferences and knowledge mobilisation will be discussed.")
+    assert neg.references_detected == NOT_EXPLICITLY_STATED
+    assert neg.uploads_detected == []
+
+
+def test_ppie_named_coordination_extracted():
+    facts = extract_text("Ms X, a co-applicant, will provide day-to-day PPI coordination. Public contributors will advise on materials.")
+    assert "PPI coordination" in facts.ppie_leadership_evidence
