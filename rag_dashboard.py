@@ -70,11 +70,12 @@ def build_rag_dashboard(items: list[ChecklistItem], facts: ApplicationFacts) -> 
         ],
         "Clinical Validation": [
             _has(facts.study_design), _has(facts.sample_size), _has(facts.sites_or_setting), bool(facts.endpoints),
-            _has(facts.regulatory_plan), _has(facts.next_stage_plan) or _has(facts.comparator_or_control),
+            _has(facts.regulatory_plan), _has(facts.next_stage_plan),
         ],
         "Health Economics": [
             _has(facts.health_economics_plan), "perspective" in he_text, any(x in he_text for x in ["comparator", "usual care", "current care"]),
             any(x in he_text for x in ["resource use", "micro-cost", "cost"]), any(x in he_text for x in ["model", "sensitivity", "scenario"]),
+            "health economist" in he_text,
         ],
         "Patient and Public Involvement": [
             _has(facts.ppie_plan) or _has(getattr(facts, "ppie_leadership_evidence", NOT_EXPLICITLY_STATED)),

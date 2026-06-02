@@ -68,9 +68,9 @@ def _phrase(label: str, value: object) -> str:
 def render_summary(facts: ApplicationFacts, dashboard: list[dict], priority_gaps: str) -> str:
     identity_bits = [
         _phrase("The project title is", facts.project_title),
-        _phrase("and it is linked to", facts.application_claimed_call),
+        _phrase("The application is linked to", facts.application_claimed_call),
         _phrase("The intervention/product is", facts.product_or_intervention),
-        _phrase("with acronym or module", facts.acronym_or_short_name),
+        _phrase("The acronym or module is", facts.acronym_or_short_name),
     ]
     identity = ". ".join(bit for bit in identity_bits if bit) or "The uploaded documents do not clearly state the project identity."
     compressed_population = _compress(facts.target_population, "population")

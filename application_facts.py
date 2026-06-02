@@ -23,7 +23,7 @@ FIELD_PATTERNS = {
     "product_or_intervention": [r"(?:product|intervention|innovation|service|device|software|programme|program|model|method)\s*[:\-]\s*(.+)"],
     "acronym_or_short_name": [r"(?:acronym|short\s+name|module)\s*[:\-]\s*(.+)"],
     "target_population": [r"(?:target\s+population|population)\s*[:\-]\s*(.+)"],
-    "clinical_or_social_care_need": [r"(?:clinical\s+need|social\s+care\s+need|need|problem)\s*[:\-]\s*(.+)"],
+    "clinical_or_social_care_need": [r"(?:clinical\s+need|social\s+care\s+need|need|problem)\s*(?:is|are|[:\-])\s*(.+)"],
     "technology_type": [r"(?:technology\s+type|intervention\s+type)\s*[:\-]\s*(.+)"],
     "study_design": [r"(?:study\s+design|design)\s*[:\-]\s*(.+)"],
     "sites_or_setting": [r"(?:sites?|setting)\s*[:\-]\s*(.+)"],
@@ -362,10 +362,19 @@ def _extract_endpoints(text: str) -> list[str]:
 
 
 def _actual_budget_sentence(text: str) -> str | None:
-    # Exclude pure health-economic wording unless concrete budget/cost categories are also present.
-    sentences = _sentences(text)
-    for sentence in sentences:
-        if any(re.search(p, sentence, re.I) for p in KEYWORDS["finance"]):
+    """Return real budget evidence, not health-economics or inclusion-cost mentions alone."""
+    strong_budget = [
+        r"budget section", r"budget spreadsheet", r"cost justification", r"staff costs", r"equipment costs?",
+        r"travel (?:and )?subsistence", r"AcoRD", r"SoECAT", r"current rates", r"funding rate",
+        r"scheme cap", r"support costs", r"treatment costs", r"cost categor(?:y|ies)", r"detailed budget",
+    ]
+    weak_costs = [r"PPIE costs", r"inclusion costs"]
+    for sentence in _sentences(text):
+        if re.search(r"\bno\s+(?:real\s+)?budget|budget[^.]{0,40}(?:not|isn['’]?t|not provided)|no budget spreadsheet", sentence, re.I):
+            continue
+        if any(re.search(p, sentence, re.I) for p in strong_budget):
+            return _short(sentence)
+        if any(re.search(p, sentence, re.I) for p in weak_costs) and re.search(r"budget|justification|spreadsheet|costed|included in the costs", sentence, re.I):
             return _short(sentence)
     return None
 
@@ -439,7 +448,7 @@ def extract_application_facts(documents: Iterable[LoadedDocument]) -> Applicatio
         "ppie_plan": KEYWORDS["ppie"],
         "research_inclusion_plan": KEYWORDS["inclusion"],
         "market_or_impact_evidence": [r"novel", r"differentiation", r"market", r"adoption", r"commercial", r"IP", r"commissioning"],
-        "next_stage_plan": [r"next stage", r"future", r"later-stage", r"definitive trial", r"scale"],
+        "next_stage_plan": [r"next stage", r"future work", r"next step", r"later-stage", r"definitive trial", r"scale-up", r"follow-on"],
     }
     for field, patterns in fallback_map.items():
         if getattr(facts, field) == NOT_EXPLICITLY_STATED:
