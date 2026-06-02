@@ -1,11 +1,16 @@
-"""Report rendering helpers for Streamlit and tests."""
+"""Section-specific report rendering helpers for Streamlit and tests."""
 from __future__ import annotations
 
 import json
+import re
+from collections import Counter
 from dataclasses import asdict
 from typing import Any
 
 from schemas import NOT_EXPLICITLY_STATED, ApplicationFacts, ChecklistItem
+
+RAW_JSON_DEBUG_NOTE = "Developer/debug output only. This is not intended as the adviser-facing report."
+RISK_ORDER = {"NONE": 0, "LOW": 1, "MEDIUM": 2, "HIGH": 3}
 
 
 class TableRow(dict):
@@ -123,29 +128,83 @@ The main adviser risks are: {risks}. The Priority Missing Evidence tab translate
 """
 
 
-def checklist_table_rows(items: list[ChecklistItem]) -> list[dict[str, Any]]:
-    return [TableRow(item.to_row()) for item in items]
+def render_summary(facts: ApplicationFacts, dashboard: list[dict], priority_gaps: str = "") -> str:
+    """Backward-compatible alias for the Summary tab renderer."""
+    return render_main_case_summary(facts, dashboard, priority_gaps)
 
 
-def dashboard_table_rows(rows: list[dict]) -> list[dict]:
-    return [{k: v for k, v in row.items() if k != "hard_validation_warnings"} for row in rows]
+def render_checklist_report_summary(items: list[ChecklistItem], facts: ApplicationFacts | None = None) -> str:
+    counts = _counts_by_rag(items)
+    strongest = sorted({item.area for item in items if item.rag == "GREEN"})[:5]
+    high_risk = sorted({item.area for item in items if item.rag in {"RED", "AMBER"}})[:6]
+    found = [item.area for item in items if item.evidence and item.rag in {"GREEN", "AMBER"}]
+    missing_actions = _top_actions_from_items(items, {"RED", "AMBER"}, 5)
+    return f"""- **Checklist row counts:** GREEN {counts['GREEN']}, AMBER {counts['AMBER']}, RED {counts['RED']}, GREY {counts['GREY']}.
+- **Strongest evidenced areas:** {', '.join(strongest) if strongest else 'None identified from available evidence.'}
+- **Missing/high-risk areas:** {', '.join(high_risk) if high_risk else 'None identified from available evidence.'}
+- **Evidence found from the application:** {', '.join(dict.fromkeys(found[:8])) if found else 'None identified from available evidence.'}
+- **Evidence still missing:** focus on RED and AMBER rows where the table shows missing, partial or human-check status.
+- **Adviser follow-up actions:**
+{_lines(missing_actions[:3])}
+- The detailed row-level checklist table follows below; use it for requirement-by-requirement evidence and actions.
+"""
 
 
-def similarity_table_rows(results: list[dict]) -> list[dict]:
-    return [
-        {
-            "Source": r.get("source", ""),
-            "Status": r.get("status", ""),
-            "Query terms used": ", ".join(r.get("query_terms_used", [])),
-            "Matches found": r.get("matches_found", 0),
-            "Top match": r.get("top_match", ""),
-            "Score": r.get("score", 0.0),
-            "Risk": r.get("risk", "NONE"),
-            "Why relevant": r.get("why_relevant", ""),
-            "Link/ID": r.get("link_or_id", ""),
-        }
-        for r in results
-    ]
+def render_rag_dashboard_summary(dashboard: list[dict]) -> str:
+    groups = _dashboard_groups(dashboard)
+    red = groups["RED"]
+    amber = groups["AMBER"]
+    profile = "high risk" if red else "moderate risk" if amber else "lower risk"
+    actions: list[str] = []
+    for row in dashboard:
+        if row.get("RAG") in {"RED", "AMBER", "GREY"}:
+            action = str(row.get("Priority action", "Review application evidence."))
+            if action not in actions:
+                actions.append(action)
+        if len(actions) >= 3:
+            break
+    return f"""- **Overall risk profile:** {profile}. The dashboard summarises the detailed checklist into seven RSS risk areas.
+- **GREEN subsystems:** {', '.join(groups['GREEN']) if groups['GREEN'] else 'None identified from available evidence.'}
+- **AMBER subsystems:** {', '.join(groups['AMBER']) if groups['AMBER'] else 'None identified from available evidence.'}
+- **RED subsystems:** {', '.join(groups['RED']) if groups['RED'] else 'None identified from available evidence.'}
+- **Top 3 adviser actions:**
+{_lines(actions[:3])}
+"""
+
+
+def render_similarity_check_summary(similarity: dict) -> str:
+    query = similarity.get("query")
+    results = similarity.get("results", [])
+    terms = []
+    if query is not None:
+        terms = list(getattr(query, "primary_terms", [])) + list(getattr(query, "secondary_terms", []))
+    for result in results:
+        for term in result.get("query_terms_used", []):
+            if term not in terms:
+                terms.append(term)
+    clean_terms = [t for t in terms if t and t.lower() not in {"second", "some", "adherence"}]
+    statuses = [str(r.get("status", "")) for r in results]
+    if not results or all(s == "not_run" for s in statuses):
+        run_state = "Similarity checking was disabled or not run."
+    elif any(s == "error" for s in statuses):
+        run_state = "Similarity checking partially failed."
+    else:
+        run_state = "Similarity checking ran for the available sources."
+    highest = "NONE"
+    for result in results:
+        risk = str(result.get("risk", "NONE"))
+        if RISK_ORDER.get(risk, 0) > RISK_ORDER.get(highest, 0):
+            highest = risk
+    total_matches = sum(int(r.get("matches_found", 0) or 0) for r in results)
+    errors = [str(r.get("why_relevant", "API error")) for r in results if r.get("status") == "error"]
+    safe_errors = [re.sub(r"https?://\S+", "[URL suppressed]", e) for e in errors]
+    return f"""- **Run status:** {run_state}
+- **Cleaned query terms used:** {', '.join(clean_terms[:8]) if clean_terms else 'None identified from available evidence.'}
+- **Meaningful matches found:** {'Yes' if total_matches else 'No'} ({total_matches} total reported matches).
+- **Overall novelty/similarity risk:** {highest}.
+- **API errors:** {'; '.join(safe_errors) if safe_errors else 'None reported.'}
+- **Human-review warning:** Similarity is only an initial screening signal; review any potentially related records manually before drawing novelty conclusions.
+"""
 
 
 ACTION_LIBRARY = {
@@ -169,38 +228,96 @@ def _action(item: ChecklistItem) -> str:
     return ACTION_LIBRARY.get(item.area, item.action or "Add or verify application-specific evidence.")
 
 
-def render_priority_missing_evidence(items: list[ChecklistItem]) -> str:
+def render_priority_missing_evidence(items: list[ChecklistItem], dashboard: list[dict] | None = None, facts: ApplicationFacts | None = None) -> str:
     critical = [i for i in items if i.rag == "RED"]
     amber = [i for i in items if i.rag == "AMBER"]
     grey = [i for i in items if i.rag == "GREY"]
     uploads = [i for i in items if i.area == "Uploads" and i.rag != "GREEN"]
     budget = [i for i in items if i.area == "Budget and Finance" and i.rag != "GREEN"]
 
-    def lines(entries: list[ChecklistItem]) -> str:
+    def action_lines(entries: list[ChecklistItem]) -> str:
         seen: set[str] = set()
         out = []
         for item in entries:
             action = _action(item)
             if action not in seen:
                 seen.add(action)
-                out.append(f"- {action}")
-        return "\n".join(out) or "- None identified from available evidence."
+                out.append(action)
+        return _lines(out)
 
-    return f"""Critical missing items
-{lines(critical)}
+    return f"""## Critical missing items
+{action_lines(critical)}
 
-Important but fixable gaps
-{lines(amber)}
+## Important but fixable gaps
+{action_lines(amber)}
 
-Items needing human judgement
-{lines(grey)}
+## Items needing human judgement
+{action_lines(grey)}
 
-Uploads still needed
-{lines(uploads)}
+## Uploads still needed
+{action_lines(uploads)}
 
-Budget/finance checks still needed
-{lines(budget)}
+## Budget/finance checks still needed
+{action_lines(budget)}
 """
+
+
+def render_executive_review_note(facts: ApplicationFacts, dashboard: list[dict], priority_gaps: str = "") -> str:
+    groups = _dashboard_groups(dashboard)
+    first_action = next((row.get("Priority action") for row in dashboard if row.get("RAG") in {"RED", "AMBER"}), "Review the detailed checklist table.")
+    bullets = [
+        f"- Application focus: {_safe(facts.product_or_intervention)} for {_compress(facts.target_population, 'population') or NOT_EXPLICITLY_STATED}.",
+        f"- Proposed evidence generation: {_safe(facts.study_design)} with {_safe(facts.sample_size)} and timeline {_safe(facts.duration_months)} months.",
+        f"- Strongest areas: {', '.join(groups['GREEN'][:3]) if groups['GREEN'] else 'None identified from available evidence.'}.",
+        f"- Areas needing attention: {', '.join((groups['RED'] + groups['AMBER'])[:4]) if groups['RED'] or groups['AMBER'] else 'None identified from available evidence.'}.",
+        f"- Finance position: {_safe(facts.finance_or_budget_evidence)}.",
+        f"- RSS adviser should check first: {first_action}.",
+    ]
+    return "\n".join(bullets[:8])
+
+
+def checklist_table_rows(items: list[ChecklistItem]) -> list[dict[str, Any]]:
+    return render_table_display_dataframe(items, "checklist")
+
+
+def dashboard_table_rows(rows: list[dict]) -> list[dict]:
+    return render_table_display_dataframe(rows, "dashboard")
+
+
+def similarity_table_rows(results: list[dict]) -> list[dict]:
+    return render_table_display_dataframe(results, "similarity")
+
+
+def render_table_display_dataframe(rows: list[Any], table_type: str = "checklist") -> list[dict[str, Any]]:
+    if table_type == "checklist":
+        rendered: list[dict[str, Any]] = []
+        for item in rows:
+            row = item.to_row() if isinstance(item, ChecklistItem) else dict(item)
+            row["Evidence from application"] = clean_table_evidence(row.get("Evidence from application", NOT_EXPLICITLY_STATED), row.get("Checklist Area", ""), row.get("Requirement", ""))
+            rendered.append(TableRow(row))
+        return rendered
+    if table_type == "dashboard":
+        return [{k: v for k, v in dict(row).items() if k != "hard_validation_warnings"} for row in rows]
+    if table_type == "similarity":
+        return [
+            {
+                "Source": r.get("source", ""),
+                "Status": r.get("status", ""),
+                "Query terms used": clean_table_evidence(", ".join(r.get("query_terms_used", [])), "Similarity", "Query terms"),
+                "Matches found": r.get("matches_found", 0),
+                "Top match": clean_table_evidence(r.get("top_match", ""), "Similarity", "Top match"),
+                "Score": r.get("score", 0.0),
+                "Risk": r.get("risk", "NONE"),
+                "Why relevant": clean_table_evidence(r.get("why_relevant", ""), "Similarity", "Why relevant"),
+                "Link/ID": r.get("link_or_id", ""),
+            }
+            for r in rows
+        ]
+    return [dict(row) for row in rows]
+
+
+def render_raw_json_note() -> str:
+    return RAW_JSON_DEBUG_NOTE
 
 
 def raw_json_payload(**kwargs: Any) -> str:

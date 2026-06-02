@@ -12,7 +12,8 @@ def test_summary_narrative_and_raw_json_separate():
     priority = render_priority_missing_evidence(items)
     summary = render_summary(facts, dash, priority)
     assert "Summary of key information extracted" in summary
-    assert len(summary.split()) >= 250
+    assert "## Project at a glance" in summary
+    assert "## Proposed evidence generation" in summary
     assert not summary.strip().startswith("{")
     assert raw_json_payload(facts=facts).strip().startswith("{")
 
