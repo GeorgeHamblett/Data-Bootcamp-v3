@@ -70,7 +70,7 @@ def _phrase(label: str, value: object) -> str:
     return f"{label} {value}" if _present(value) else ""
 
 
-def render_summary(facts: ApplicationFacts, dashboard: list[dict], priority_gaps: str) -> str:
+def render_main_case_summary(facts: ApplicationFacts, dashboard: list[dict], priority_gaps: str = "") -> str:
     identity_bits = [
         _phrase("The project title is", facts.project_title),
         _phrase("The application is linked to", facts.application_claimed_call),
@@ -114,16 +114,16 @@ def render_summary(facts: ApplicationFacts, dashboard: list[dict], priority_gaps
 
     return f"""Summary of key information extracted
 
-1. Project at a glance
+## Project at a glance
 {identity}. {population}. The summary is based on the runtime application and supporting documents only; built-in NIHR/RSS guidance is used as checklist guidance, not as application evidence. Where source documents include workplans or appendices, those supporting documents are considered alongside the main application text.
 
-2. Proposed evidence generation
+## Proposed evidence generation
 {evidence}. Extracted endpoints and outcome measures include {outcomes}. These facts are used to judge clinical validation only where they directly match the requirement being checked, so a duration, Gantt row or outcome measure is not reused to satisfy unrelated applicant, finance or eligibility requirements.
 
-3. Adoption and delivery readiness
+## Adoption and delivery readiness
 {readiness} Finance is considered separately from health economics: economic modelling, EQ-5D/QALY or cost-effectiveness wording supports health economics, while Finance requires actual budget, cost-category, rate, cap, AcoRD, SoECAT or cost-justification evidence.
 
-4. Main RSS checklist risks
+## Main RSS checklist risks
 The main adviser risks are: {risks}. The Priority Missing Evidence tab translates these into practical actions, such as verifying AI-use and conflicts declarations, named PPI leadership/payment, call-specific uploads, references, and detailed budget/AcoRD/SoECAT evidence where applicable. Items marked missing, partially present or needing human check should be resolved against the uploaded application and the specific funding call rather than against generic guidance text.
 """
 
@@ -132,6 +132,85 @@ def render_summary(facts: ApplicationFacts, dashboard: list[dict], priority_gaps
     """Backward-compatible alias for the Summary tab renderer."""
     return render_main_case_summary(facts, dashboard, priority_gaps)
 
+
+def _lines(values: list[str]) -> str:
+    """Render unique non-empty values as Markdown bullets."""
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = clean_table_evidence(value)
+        if text == NOT_EXPLICITLY_STATED:
+            continue
+        key = text.lower()
+        if key not in seen:
+            seen.add(key)
+            cleaned.append(text)
+    if not cleaned:
+        return "- None identified from available evidence."
+    return "\n".join(f"- {value}" for value in cleaned)
+
+
+def clean_table_evidence(value: object, area: str = "", requirement: str = "") -> str:
+    """Clean evidence snippets so tables show adviser-facing content, not portal noise."""
+    if isinstance(value, list):
+        text = "; ".join(str(v) for v in value if _present(v))
+    else:
+        text = str(value or "").strip()
+    if not _present(text):
+        return NOT_EXPLICITLY_STATED
+
+    portal_noise = re.compile(
+        r"click invite|fill in (?:the )?name/?email|fill in (?:the )?name|email address|save draft|"
+        r"awards management system|on-screen|button|automatically pull|registered|use this guidance",
+        re.I,
+    )
+    parts = [part.strip(" .;:\n\t") for part in re.split(r"[.;]\s+", text) if part.strip()]
+    useful = [part for part in parts if not portal_noise.search(part)]
+    cleaned = "; ".join(useful).strip(" ;")
+    if not cleaned:
+        return NOT_EXPLICITLY_STATED
+    return cleaned[:500]
+
+
+
+def _safe(value: object) -> str:
+    """Return a readable fallback for missing extracted values."""
+    return clean_table_evidence(value)
+
+
+def _counts_by_rag(items: list[ChecklistItem]) -> dict[str, int]:
+    """Count checklist items by RAG status with stable zero defaults."""
+    counts = Counter(item.rag for item in items)
+    return {rag: counts.get(rag, 0) for rag in ("GREEN", "AMBER", "RED", "GREY")}
+
+
+def _top_actions_from_items(items: list[ChecklistItem], rags: set[str], limit: int) -> list[str]:
+    """Return deduplicated adviser actions for checklist items matching the requested RAG statuses."""
+    actions: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        if item.rag not in rags:
+            continue
+        action = _action(item)
+        key = action.lower()
+        if key not in seen:
+            seen.add(key)
+            actions.append(action)
+        if len(actions) >= limit:
+            break
+    return actions
+
+
+def _dashboard_groups(dashboard: list[dict]) -> dict[str, list[str]]:
+    """Group dashboard subsystem names by RAG status for summaries."""
+    groups: dict[str, list[str]] = {rag: [] for rag in ("GREEN", "AMBER", "RED", "GREY")}
+    for row in dashboard:
+        rag = str(row.get("RAG", "GREY") or "GREY").upper()
+        subsystem = str(row.get("Subsystem", "")).strip()
+        if not subsystem:
+            continue
+        groups.setdefault(rag, []).append(subsystem)
+    return groups
 
 def render_checklist_report_summary(items: list[ChecklistItem], facts: ApplicationFacts | None = None) -> str:
     counts = _counts_by_rag(items)
