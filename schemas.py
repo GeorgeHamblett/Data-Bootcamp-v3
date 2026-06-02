@@ -107,6 +107,7 @@ class ApplicationFacts:
     regulatory_plan: str = NOT_EXPLICITLY_STATED
     health_economics_plan: str = NOT_EXPLICITLY_STATED
     ppie_plan: str = NOT_EXPLICITLY_STATED
+    ppie_leadership_evidence: str = NOT_EXPLICITLY_STATED
     research_inclusion_plan: str = NOT_EXPLICITLY_STATED
     project_management_plan: str = NOT_EXPLICITLY_STATED
     finance_or_budget_evidence: str = NOT_EXPLICITLY_STATED
