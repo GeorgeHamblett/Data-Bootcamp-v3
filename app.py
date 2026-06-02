@@ -18,7 +18,6 @@ from report_renderer import (
     render_rag_dashboard_summary,
     render_raw_json_note,
     render_similarity_check_summary,
-    render_table_display_dataframe,
     similarity_table_rows,
 )
 from settings import Settings

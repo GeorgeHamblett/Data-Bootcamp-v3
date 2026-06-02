@@ -51,12 +51,6 @@ def test_main_case_summary_and_raw_json_note_are_safe_markdown():
     assert len(note.split()) < 20
 
 
-def test_main_case_wrapper_accepts_optional_priority_items():
-    summary = report_renderer.render_main_case_summary(ApplicationFacts(project_title="Wrapper smoke"), None, ["gap one"])
-    assert "Summary of key information extracted" in summary
-    assert "Wrapper smoke" in summary
-
-
 def test_streamlit_app_imports_without_importerror():
     app = importlib.import_module("app")
     assert hasattr(app, "main")

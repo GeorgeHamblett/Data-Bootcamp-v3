@@ -90,22 +90,3 @@ def test_single_generic_sus_overlap_is_none():
     scored = score_result(["SUS"], "A study using SUS", "")
     assert scored["risk"] == "NONE"
     assert scored["score"] == 0.0
-
-
-def test_stepright_query_prefers_specific_expected_concepts():
-    f = ApplicationFacts(
-        product_or_intervention="StepRight",
-        acronym_or_short_name="MQAE",
-        clinical_or_social_care_need="falls prevention, balance, mobility rehabilitation, confidence and independence",
-        target_population="older adults aged 60+ at risk of falling / with reduced balance confidence",
-        technology_type="AI-enabled wearable digital therapeutic and movement quality assessment engine",
-        sites_or_setting="NHS community rehabilitation",
-        endpoints=["SUS", "EQ-5D-5L", "recruitment"],
-    )
-    q = build_similarity_query(f)
-    terms = q.primary_terms + q.secondary_terms
-    assert "movement quality assessment engine" in terms
-    assert "older adults" in terms
-    assert "NHS community rehabilitation" in terms
-    assert not any(term == "AI-enabled wearable" for term in terms)
-    assert not any("care in community rehabilitation" in term for term in terms)

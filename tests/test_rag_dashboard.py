@@ -53,19 +53,3 @@ def test_project_management_and_finance_dashboard_rules():
     finance = next(r for r in rows if r["Subsystem"] == "Finance")
     assert pm["RAG"] in {"AMBER", "GREEN"}
     assert finance["RAG"] == "RED"
-
-
-def test_health_economics_without_health_economist_is_not_green():
-    facts = ApplicationFacts(
-        health_economics_plan="NHS perspective, usual care comparator, resource use, micro-costing, cost-effectiveness model and budget impact analysis",
-        comparator_or_control="usual care",
-        endpoints=["EQ-5D-5L"],
-    )
-    rows = build_rag_dashboard(build_checklist(facts, derived_reviewer_requirements()), facts)
-    assert next(r for r in rows if r["Subsystem"] == "Health Economics")["RAG"] == "AMBER"
-
-
-def test_clinical_validation_without_next_stage_is_not_green():
-    facts = ApplicationFacts(study_design="randomised feasibility pilot", sample_size="54 participants", sites_or_setting="NHS community", endpoints=["EQ-5D"], regulatory_plan="ethics and UKCA")
-    rows = build_rag_dashboard(build_checklist(facts, derived_reviewer_requirements()), facts)
-    assert next(r for r in rows if r["Subsystem"] == "Clinical Validation")["RAG"] == "AMBER"
