@@ -328,3 +328,26 @@ def raw_json_payload(**kwargs: Any) -> str:
             return asdict(obj)
         return str(obj)
     return json.dumps(kwargs, default=default, indent=2)
+
+
+EXPECTED_RENDERER_FUNCTIONS = (
+    "render_main_case_summary",
+    "render_checklist_report_summary",
+    "render_rag_dashboard_summary",
+    "render_similarity_check_summary",
+    "render_priority_missing_evidence",
+    "render_executive_review_note",
+    "render_table_display_dataframe",
+    "render_raw_json_note",
+)
+
+__all__ = (
+    "TableRow",
+    "checklist_table_rows",
+    "clean_table_evidence",
+    "dashboard_table_rows",
+    "raw_json_payload",
+    "render_summary",
+    "similarity_table_rows",
+    *EXPECTED_RENDERER_FUNCTIONS,
+)
