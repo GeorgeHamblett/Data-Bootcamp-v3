@@ -48,3 +48,8 @@ def test_summary_polishes_raw_sentences_and_uses_duration_24():
     assert "addressing This project" not in summary
     assert summary.count("This project will test") < 2
     assert "Month 24" in summary
+    assert "The setting is NHS community rehabilitation services" in summary
+    assert "The setting is Partners include" not in summary
+    assert ". with" not in summary
+    assert ".." not in summary
+    assert "comparator/control Comparator:" not in summary

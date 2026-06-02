@@ -25,6 +25,21 @@ def _present(value: object) -> bool:
     return bool(value and value != NOT_EXPLICITLY_STATED)
 
 
+def _strip_terminal_punctuation(value: object) -> str:
+    return str(value or "").strip().rstrip(" .;:")
+
+
+def _join_sentences(parts: list[str], separator: str = ". ") -> str:
+    cleaned = [_strip_terminal_punctuation(part) for part in parts if _present(part)]
+    return separator.join(part for part in cleaned if part)
+
+
+def _remove_label_prefix(value: object, labels: tuple[str, ...]) -> str:
+    text = _strip_terminal_punctuation(value)
+    for label in labels:
+        text = re.sub(rf"^{label}\s*[:\-]\s*", "", text, flags=re.I)
+    return text
+
 
 def _compress(value: object, kind: str = "generic") -> str:
     if not _present(value):
@@ -32,20 +47,31 @@ def _compress(value: object, kind: str = "generic") -> str:
     text = str(value).strip()
     if kind == "population":
         for pattern in [r"(older adults?[^.;]{0,120})", r"(participants? aged \d+[^.;]{0,100})", r"((?:patients|people|adults|children|service users)[^.;]{0,100})"]:
-            import re
             m = re.search(pattern, text, re.I)
             if m:
                 return m.group(1).strip(" .;:")
     if kind == "need":
-        import re
         bits = []
         for pattern in [r"falls? prevention", r"reduce risk of falling", r"balance(?: confidence)?", r"mobility rehabilitation", r"confidence", r"independence", r"rehabilitation"]:
             if re.search(pattern, text, re.I):
                 val = re.search(pattern, text, re.I).group(0).lower()
+                if val == "rehabilitation" and any("rehabilitation" in bit for bit in bits):
+                    continue
                 if val not in bits:
                     bits.append(val)
         if bits:
             return ", ".join(bits)
+    if kind == "setting":
+        for pattern in [
+            r"(NHS[^.;,]{0,140}(?:services?|clinics?|teams?|trusts?|sites?|settings?|rehabilitation))",
+            r"((?:primary|secondary|community|social) care[^.;,]{0,80})",
+            r"(community rehabilitation[^.;,]{0,80})",
+        ]:
+            match = re.search(pattern, text, re.I)
+            if match:
+                return match.group(1).strip(" .;:")
+        if re.match(r"partners? include", text, re.I):
+            return ""
     # Avoid rendering raw proposal sentences in summary clauses.
     if len(text.split()) > 18 or text.lower().startswith(("this project", "we will", "the project will")):
         text = text.split(".")[0]
@@ -83,19 +109,21 @@ def render_main_case_summary(facts: ApplicationFacts, dashboard: list[dict], pri
     population_bits = [
         ("The target population is", compressed_population),
         ("The clinical or care need is", compressed_need),
-        ("The setting is", _compress(facts.sites_or_setting)),
+        ("The setting is", _compress(facts.sites_or_setting, "setting")),
     ]
     population = ". ".join(f"{label} {value}" for label, value in _unique_phrases(population_bits) if value)
 
-    evidence_bits = [
+    design_parts = [
         _phrase("The design is", facts.study_design),
         _phrase("using", facts.methodology),
         _phrase("with sample size", facts.sample_size),
-        _phrase("and comparator/control", facts.comparator_or_control),
+        _phrase("and comparator/control", _remove_label_prefix(facts.comparator_or_control, ("comparator", "control"))),
+    ]
+    development_parts = [
         _phrase("The development-stage evidence is", facts.trl_evidence),
         _phrase("The extracted timeline appears to run to", ("Month " + facts.duration_months) if _present(facts.duration_months) and "month" not in str(facts.duration_months).lower() else facts.duration_months),
     ]
-    evidence = ". ".join(bit for bit in evidence_bits if bit) or "The evidence-generation design needs clearer application evidence."
+    evidence = _join_sentences([_join_sentences(design_parts, ", "), _join_sentences(development_parts)]) or "The evidence-generation design needs clearer application evidence."
     outcomes = ", ".join(facts.endpoints[:10]) if facts.endpoints else "outcomes/endpoints need clearer confirmation"
 
     readiness_bits = [
@@ -105,12 +133,12 @@ def render_main_case_summary(facts: ApplicationFacts, dashboard: list[dict], pri
         _phrase("Research inclusion evidence includes", facts.research_inclusion_plan),
         _phrase("Project management evidence includes", facts.project_management_plan),
     ]
-    readiness = " ".join(bit + "." for bit in readiness_bits if bit)
+    readiness = " ".join(_strip_terminal_punctuation(bit) + "." for bit in readiness_bits if bit)
     if not readiness:
         readiness = "Adoption, regulatory, PPIE, inclusion and project-management readiness need clearer evidence."
 
     risk_rows = [row for row in dashboard if row["RAG"] in {"RED", "AMBER", "GREY"}]
-    risks = ". ".join(f"{row['Subsystem']} - {row['Priority action']}" for row in risk_rows[:5]) or "No major checklist risks identified from relevant evidence."
+    risks = "; ".join(f"{row['Subsystem']} - {_strip_terminal_punctuation(row['Priority action'])}" for row in risk_rows[:5]) or "No major checklist risks identified from relevant evidence"
 
     return f"""Summary of key information extracted
 
@@ -303,7 +331,7 @@ def render_priority_missing_evidence(items: list[ChecklistItem], dashboard: list
 
 def render_executive_review_note(facts: ApplicationFacts, dashboard: list[dict], priority_gaps: str = "") -> str:
     groups = _dashboard_groups(dashboard)
-    first_action = next((row.get("Priority action") for row in dashboard if row.get("RAG") in {"RED", "AMBER"}), "Review the detailed checklist table.")
+    first_action = _strip_terminal_punctuation(next((row.get("Priority action") for row in dashboard if row.get("RAG") in {"RED", "AMBER"}), "Review the detailed checklist table"))
     bullets = [
         f"- Application focus: {_safe(facts.product_or_intervention)} for {_compress(facts.target_population, 'population') or NOT_EXPLICITLY_STATED}.",
         f"- Proposed evidence generation: {_safe(facts.study_design)} with {_safe(facts.sample_size)} and timeline {_safe(facts.duration_months)} months.",
