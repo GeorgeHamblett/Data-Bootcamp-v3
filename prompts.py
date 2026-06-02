@@ -290,3 +290,165 @@ It must verify:
 - Budget includes AcoRD, SoECAT if applicable, current rates, justification of costs and scheme caps.
 - Guidance text is not used as application evidence.
 """
+
+COMMON_ADVISER_OUTPUT_RULES = """
+Rules for every adviser-facing output:
+- Output Markdown only.
+- Use headings and bullet points.
+- Do not output JSON.
+- Do not output tables unless explicitly asked.
+- Do not invent evidence.
+- Use “Not explicitly stated” only when genuinely missing.
+- Do not repeat raw guidance text.
+- Do not treat built-in guidance as application evidence.
+- Do not hard-code the StepRight dummy application.
+- Keep outputs adviser-facing and concise.
+- Refer to detailed tables below for row-level evidence.
+"""
+
+MAIN_CASE_SUMMARY_PROMPT = """
+Purpose: Generate the main “Summary of key information extracted” for the Summary tab.
+Input: extracted application facts, dashboard summary, priority missing evidence.
+Output: Markdown only.
+Required sections:
+- Project at a glance
+- Proposed evidence generation
+- Adoption and delivery readiness
+- Main RSS checklist risks
+Rules:
+- Use headings, blank lines and bullets.
+- Do not output one long paragraph.
+- Do not output raw JSON.
+- Do not repeat long evidence strings.
+- Do not invent missing facts.
+- Built-in NIHR/RSS guidance is checklist guidance only, not application evidence.
+- Keep it adviser-facing and readable.
+- Focus only on the Summary tab main case summary.
+""" + COMMON_ADVISER_OUTPUT_RULES
+
+CHECKLIST_REPORT_SUMMARY_PROMPT = """
+Purpose: Generate a readable “Summary of key information extracted” for the Checklist Report tab before the checklist table.
+Input: checklist rows, extracted facts, status/RAG counts.
+Output: Markdown only.
+Required content:
+- Count of GREEN, AMBER, RED and GREY rows.
+- Strongest evidenced areas.
+- Missing/high-risk areas.
+- Evidence found from the application.
+- Evidence still missing.
+- Adviser follow-up actions.
+- A note that the detailed row-level table follows.
+Rules:
+- Do not reproduce the whole table.
+- Do not list every checklist row.
+- Do not dump long evidence strings.
+- Do not repeat raw guidance text.
+- Explain what the table means.
+- Focus only on the Checklist Report tab summary.
+""" + COMMON_ADVISER_OUTPUT_RULES
+
+RAG_DASHBOARD_SUMMARY_PROMPT = """
+Purpose: Generate a readable “Summary of key information extracted” for the RAG Dashboard tab before the RAG table.
+Input: seven RAG dashboard subsystem rows and top priority actions.
+Output: Markdown only.
+Required content:
+- Overall risk profile.
+- GREEN subsystems.
+- AMBER subsystems.
+- RED subsystems.
+- Top 3 adviser actions.
+- Explanation that the dashboard summarises the detailed checklist into seven RSS risk areas.
+Rules:
+- Must work for any application.
+- Do not hard-code StepRight.
+- Do not output raw table rows.
+- Do not say an AMBER area has “no major gap”.
+- Keep it concise and adviser-facing.
+- Focus only on the RAG Dashboard tab summary.
+""" + COMMON_ADVISER_OUTPUT_RULES
+
+SIMILARITY_CHECK_SUMMARY_PROMPT = """
+Purpose: Generate a readable “Summary of key information extracted” for the Similarity Check tab before the similarity table.
+Input: cleaned query terms, similarity API statuses, matches found, highest similarity risk, API errors if any.
+Output: Markdown only.
+Required content:
+- Whether similarity checking ran, was disabled, or partially failed.
+- Cleaned query terms used.
+- Whether meaningful matches were found.
+- Overall novelty/similarity risk: NONE, LOW, MEDIUM or HIGH.
+- Plain-English explanation of any API errors, without long URLs.
+- Human-review warning.
+Rules:
+- Do not expose full application text.
+- Do not output long query URLs.
+- Do not include generic document terms.
+- Do not overstate novelty.
+- Similarity is only an initial screening signal.
+- Focus only on the Similarity Check tab summary.
+""" + COMMON_ADVISER_OUTPUT_RULES
+
+PRIORITY_MISSING_EVIDENCE_PROMPT = """
+Purpose: Generate the Priority Missing Evidence tab.
+Input: checklist rows, RAG dashboard, extracted facts.
+Output: Markdown only.
+Required sections:
+- Critical missing items
+- Important but fixable gaps
+- Items needing human judgement
+- Uploads still needed
+- Budget/finance checks still needed
+Rules:
+- Use bullet points.
+- Add blank lines between groups.
+- If a group has no items, write “None identified from available evidence.”
+- Avoid duplicates.
+- Do not repeat raw guidance paragraphs.
+- Do not include portal instructions like “click Invite” or “fill in name/email”.
+- Focus only on grouped missing evidence.
+""" + COMMON_ADVISER_OUTPUT_RULES
+
+EXECUTIVE_REVIEW_NOTE_PROMPT = """
+Purpose: Generate a short 5-8 bullet executive adviser note.
+Input: extracted facts, dashboard, priority missing evidence.
+Output: Markdown bullet list only.
+Required content:
+- What the application is about.
+- What evidence generation is proposed.
+- What looks strongest.
+- What is missing or needs verification.
+- What the RSS adviser should check first.
+Rules:
+- Keep it short.
+- Do not duplicate the whole main summary.
+- Do not output raw JSON.
+- Focus only on an executive adviser note.
+""" + COMMON_ADVISER_OUTPUT_RULES
+
+TABLE_EVIDENCE_DISPLAY_PROMPT = """
+Purpose: Clean evidence text shown inside tables.
+Input: raw evidence field, checklist area, requirement.
+Output: Short evidence string for display.
+Rules:
+- Output Markdown only if rendered as text.
+- Maximum about 35 words.
+- No huge semicolon-separated dumps.
+- No clipped phrases like “to intervent”.
+- No repeated phrases like “rehabilitation, rehabilitation”.
+- Full detail should remain only in Raw JSON.
+- Do not invent evidence.
+- Do not output raw JSON.
+- Focus only on table evidence display.
+""" + COMMON_ADVISER_OUTPUT_RULES
+
+RAW_JSON_NOTE_PROMPT = """
+Purpose: Add a short note above the Raw JSON tab.
+Output: Developer/debug output only. This is not intended as the adviser-facing report.
+Rules:
+- Output Markdown only.
+- Do not invent evidence.
+- Do not output raw JSON in this note.
+- Do not treat built-in guidance as application evidence.
+- Do not hard-code the StepRight dummy application.
+- Keep outputs adviser-facing and concise.
+- Focus only on labelling Raw JSON developer/debug output.
+""" + COMMON_ADVISER_OUTPUT_RULES
