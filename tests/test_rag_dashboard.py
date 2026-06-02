@@ -31,3 +31,41 @@ def test_rag_hard_validation_blocks_green_without_specific_evidence():
     assert next(r for r in rows if r["Subsystem"] == "Patient and Public Involvement")["RAG"] != "GREEN"
     assert next(r for r in rows if r["Subsystem"] == "Health Economics")["RAG"] != "GREEN"
     assert next(r for r in rows if r["Subsystem"] == "Project Management")["RAG"] != "GREEN"
+
+
+def test_no_amber_row_with_no_major_gap_identified():
+    facts = ApplicationFacts(research_inclusion_plan="Underserved groups and accessibility are considered")
+    rows = build_rag_dashboard(build_checklist(facts, derived_reviewer_requirements()), facts)
+    assert not any(r["RAG"] == "AMBER" and r["Main gap"] == "No major gap identified from relevant evidence." for r in rows)
+
+
+def test_ppie_named_coordination_amber_not_red_without_payment():
+    facts = ApplicationFacts(ppie_plan="Public contributors advise on materials", ppie_leadership_evidence="Ms X, a co-applicant, will provide day-to-day PPI coordination")
+    rows = build_rag_dashboard(build_checklist(facts, derived_reviewer_requirements()), facts)
+    ppie = next(r for r in rows if r["Subsystem"] == "Patient and Public Involvement")
+    assert ppie["RAG"] == "AMBER"
+
+
+def test_project_management_and_finance_dashboard_rules():
+    facts = ApplicationFacts(duration_months="24", project_management_plan="24-month plan; work packages/Gantt rows present; milestones present", work_packages=["WP1: setup"], milestones=["Month 24: final report"], uploads_detected=["A Gantt chart is included"], finance_or_budget_evidence="")
+    rows = build_rag_dashboard(build_checklist(facts, derived_reviewer_requirements()), facts)
+    pm = next(r for r in rows if r["Subsystem"] == "Project Management")
+    finance = next(r for r in rows if r["Subsystem"] == "Finance")
+    assert pm["RAG"] in {"AMBER", "GREEN"}
+    assert finance["RAG"] == "RED"
+
+
+def test_health_economics_without_health_economist_is_not_green():
+    facts = ApplicationFacts(
+        health_economics_plan="NHS perspective, usual care comparator, resource use, micro-costing, cost-effectiveness model and budget impact analysis",
+        comparator_or_control="usual care",
+        endpoints=["EQ-5D-5L"],
+    )
+    rows = build_rag_dashboard(build_checklist(facts, derived_reviewer_requirements()), facts)
+    assert next(r for r in rows if r["Subsystem"] == "Health Economics")["RAG"] == "AMBER"
+
+
+def test_clinical_validation_without_next_stage_is_not_green():
+    facts = ApplicationFacts(study_design="randomised feasibility pilot", sample_size="54 participants", sites_or_setting="NHS community", endpoints=["EQ-5D"], regulatory_plan="ethics and UKCA")
+    rows = build_rag_dashboard(build_checklist(facts, derived_reviewer_requirements()), facts)
+    assert next(r for r in rows if r["Subsystem"] == "Clinical Validation")["RAG"] == "AMBER"

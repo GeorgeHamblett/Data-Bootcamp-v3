@@ -33,3 +33,34 @@ def test_priority_missing_evidence_uses_actions_not_portal_text():
     assert "fill in" not in priority
     assert "save draft" not in priority
     assert "add or verify" in priority or "upload or verify" in priority
+
+from tests.fixtures import STEPRIGHT_APP, STEPRIGHT_GANTT
+from application_facts import extract_application_facts
+from document_loader import LoadedDocument
+
+
+def test_summary_polishes_raw_sentences_and_uses_duration_24():
+    facts = extract_application_facts([LoadedDocument("app.txt", STEPRIGHT_APP), LoadedDocument("gantt.txt", STEPRIGHT_GANTT)])
+    dash = build_rag_dashboard(build_checklist(facts, derived_reviewer_requirements()), facts)
+    summary = render_summary(facts, dash, "")
+    assert "focuses on This project" not in summary
+    assert "addressing This project" not in summary
+    assert summary.count("This project will test") < 2
+    assert "Month 24" in summary
+
+
+def test_summary_identity_and_setting_are_not_awkward_partner_sentence():
+    facts = ApplicationFacts(
+        project_title="StepRight",
+        application_claimed_call="i4i PDA",
+        product_or_intervention="StepRight",
+        acronym_or_short_name="MQAE",
+        target_population="older adults aged 60 and over at risk of falling",
+        clinical_or_social_care_need="falls prevention, balance rehabilitation and confidence",
+        sites_or_setting="NHS community rehabilitation services",
+        duration_months="24",
+    )
+    summary = render_summary(facts, [], "")
+    assert ". and it is linked" not in summary
+    assert ". with acronym" not in summary
+    assert "The setting is NHS community rehabilitation services" in summary

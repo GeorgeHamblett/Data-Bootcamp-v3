@@ -1,7 +1,9 @@
 """Cautious similarity scoring utilities."""
 from __future__ import annotations
 
-from similarity.query_builder import is_generic_term
+from similarity.query_builder import is_generic_term, normalise
+
+GENERIC_OVERLAP_ONLY = {"sus", "eq-5d", "eq-5d-5l", "recruitment", "retention", "fidelity", "interviews"}
 
 
 def matched_concepts(terms: list[str], title: str, abstract: str = "") -> list[str]:
@@ -18,7 +20,9 @@ def score_result(terms: list[str], title: str, abstract: str = "", product_or_ac
     if not matches:
         return {"score": 0.0, "risk": "NONE", "matched_concepts": []}
     if len(matches) == 1:
-        return {"score": 0.10, "risk": "LOW", "matched_concepts": matches}
+        if normalise(matches[0]) in GENERIC_OVERLAP_ONLY:
+            return {"score": 0.0, "risk": "NONE", "matched_concepts": matches}
+        return {"score": 0.05, "risk": "LOW", "matched_concepts": matches}
     product_match = bool(product_or_acronym and product_or_acronym.lower() in [m.lower() for m in matches])
     if product_match and len(matches) >= 2 or len(matches) >= 3:
         return {"score": min(0.95, 0.30 * len(matches)), "risk": "HIGH", "matched_concepts": matches}

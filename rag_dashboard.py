@@ -59,7 +59,7 @@ def build_rag_dashboard(items: list[ChecklistItem], facts: ApplicationFacts) -> 
             grouped[subsystem].append(item)
 
     he_text = _text(facts.health_economics_plan, facts.comparator_or_control, facts.endpoints)
-    ppie_text = _text(facts.ppie_plan)
+    ppie_text = _text(facts.ppie_plan, getattr(facts, "ppie_leadership_evidence", NOT_EXPLICITLY_STATED))
     pm_text = _text(facts.project_management_plan, facts.work_packages, facts.milestones, facts.uploads_detected)
     finance_text = _text(facts.finance_or_budget_evidence)
 
@@ -70,14 +70,16 @@ def build_rag_dashboard(items: list[ChecklistItem], facts: ApplicationFacts) -> 
         ],
         "Clinical Validation": [
             _has(facts.study_design), _has(facts.sample_size), _has(facts.sites_or_setting), bool(facts.endpoints),
-            _has(facts.regulatory_plan), _has(facts.next_stage_plan) or _has(facts.comparator_or_control),
+            _has(facts.regulatory_plan), _has(facts.next_stage_plan),
         ],
         "Health Economics": [
             _has(facts.health_economics_plan), "perspective" in he_text, any(x in he_text for x in ["comparator", "usual care", "current care"]),
             any(x in he_text for x in ["resource use", "micro-cost", "cost"]), any(x in he_text for x in ["model", "sensitivity", "scenario"]),
+            "health economist" in he_text,
         ],
         "Patient and Public Involvement": [
-            _has(facts.ppie_plan), any(x in ppie_text for x in ["lead", "co-applicant", "advisory group"]),
+            _has(facts.ppie_plan) or _has(getattr(facts, "ppie_leadership_evidence", NOT_EXPLICITLY_STATED)),
+            any(x in ppie_text for x in ["lead", "co-applicant", "coordinat", "advisory group"]),
             any(x in ppie_text for x in ["payment", "expenses", "support"]), any(x in ppie_text for x in ["shaped", "co-design", "changed"]),
         ],
         "Research Inclusion": [
@@ -107,19 +109,26 @@ def build_rag_dashboard(items: list[ChecklistItem], facts: ApplicationFacts) -> 
             rag = "RED"; score = 0; warnings.append("No budget evidence forces Finance RED.")
         if subsystem == "Finance" and rag == "GREEN" and score < 5:
             rag = "AMBER"; warnings.append("Incomplete budget evidence prevents Finance GREEN.")
-        if subsystem == "Patient and Public Involvement" and not _has(facts.ppie_plan):
+        if subsystem == "Patient and Public Involvement" and not (_has(facts.ppie_plan) or _has(getattr(facts, "ppie_leadership_evidence", NOT_EXPLICITLY_STATED))):
             rag = "RED"; score = 0; warnings.append("No PPIE evidence forces PPIE RED.")
-        if subsystem == "Patient and Public Involvement" and rag == "GREEN" and ("lead" not in ppie_text or "no named lead" in ppie_text or not any(x in ppie_text for x in ["payment", "expenses", "support"])):
-            rag = "AMBER"; warnings.append("No named PPI lead or payment/support prevents PPIE GREEN.")
-        if subsystem == "Health Economics" and rag == "GREEN" and not ("perspective" in he_text and any(x in he_text for x in ["comparator", "usual care", "current care"]) and "cost" in he_text):
-            rag = "AMBER"; warnings.append("No health economics perspective/comparator/cost-outcome plan prevents Health Economics GREEN.")
+        if subsystem == "Patient and Public Involvement" and _has(getattr(facts, "ppie_leadership_evidence", NOT_EXPLICITLY_STATED)) and rag == "RED":
+            rag = "AMBER"; score = max(score, 2); warnings.append("Named PPI coordination prevents PPIE RED but needs payment/support and dedicated-lead confirmation.")
+        if subsystem == "Patient and Public Involvement" and rag == "GREEN" and (not any(x in ppie_text for x in ["dedicated ppi lead", "named ppi lead"]) or not any(x in ppie_text for x in ["payment", "expenses", "support"])):
+            rag = "AMBER"; warnings.append("No explicit dedicated/named PPI lead or payment/support prevents PPIE GREEN.")
+        if subsystem == "Clinical Validation" and rag == "GREEN" and not _has(facts.next_stage_plan):
+            rag = "AMBER"; warnings.append("No explicit next-stage plan prevents Clinical Validation GREEN.")
+        if subsystem == "Health Economics" and rag == "GREEN" and not ("perspective" in he_text and any(x in he_text for x in ["comparator", "usual care", "current care"]) and "cost" in he_text and "health economist" in he_text):
+            rag = "AMBER"; warnings.append("No health economist involvement or perspective/comparator/cost-outcome plan prevents Health Economics GREEN.")
         if subsystem == "Project Management" and rag == "GREEN" and not ("gantt" in pm_text and bool(facts.milestones)):
             rag = "AMBER"; warnings.append("No Gantt/project management evidence prevents Project Management GREEN.")
         if rag == "GREEN" and score == 0:
             rag = "GREY"; warnings.append("No GREEN without relevant evidence.")
 
         sub_items = grouped.get(subsystem, [])
-        main_gap = next((item.gap for item in sub_items if item.rag in {"RED", "AMBER", "GREY"}), "No major gap identified from relevant evidence.")
+        default_gap = "No major gap identified from relevant evidence." if rag == "GREEN" else f"{subsystem} is {rag}; verify the missing checks shown by {evidenced} evidence coverage."
+        main_gap = next((item.gap for item in sub_items if item.rag in {"RED", "AMBER", "GREY"}), default_gap)
+        if rag == "AMBER" and main_gap == "No major gap identified from relevant evidence.":
+            main_gap = default_gap
         priority_action = next((item.action for item in sub_items if item.rag in {"RED", "AMBER", "GREY"}), "Review consistency with application evidence and call guidance.")
         rows.append({"Subsystem": subsystem, "RAG": rag, "Score 0-5": score, "Checks evidenced": evidenced, "Main gap": main_gap, "Priority action": priority_action, "hard_validation_warnings": warnings})
     return rows
