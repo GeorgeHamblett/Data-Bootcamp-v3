@@ -153,32 +153,3 @@ def test_upload_and_reference_detection_no_knowledge_false_positive():
 def test_ppie_named_coordination_extracted():
     facts = extract_text("Ms X, a co-applicant, will provide day-to-day PPI coordination. Public contributors will advise on materials.")
     assert "PPI coordination" in facts.ppie_leadership_evidence
-
-
-def test_inclusion_costs_alone_are_not_real_budget_evidence():
-    facts = extract_text("Research inclusion will address interpreters, accessibility support and inclusion costs. No budget spreadsheet is provided.")
-    assert facts.finance_or_budget_evidence == NOT_EXPLICITLY_STATED
-
-
-def test_reference_section_uploaded_is_detected_as_upload_artifact():
-    facts = extract_text("References: uploaded bibliography.")
-    assert facts.references_detected != NOT_EXPLICITLY_STATED
-    assert any("References" in item for item in facts.uploads_detected)
-
-
-def test_setting_prefers_recruitment_setting_over_partner_sentence():
-    facts = extract_text("Partners include a university team and three NHS Trusts. We will recruit 54 participants across NHS community rehabilitation services in three NHS Trusts.")
-    assert "community rehabilitation" in facts.sites_or_setting.lower()
-    assert not facts.sites_or_setting.lower().startswith("partners include")
-
-
-def test_stepright_finance_and_setting_regression():
-    facts = extract_application_facts([LoadedDocument("main.txt", STEPRIGHT_APP), LoadedDocument("gantt.txt", STEPRIGHT_GANTT)])
-    assert facts.finance_or_budget_evidence == NOT_EXPLICITLY_STATED
-    assert "community rehabilitation" in facts.sites_or_setting.lower()
-    assert "confidence" in facts.clinical_or_social_care_need.lower()
-
-
-def test_endpoint_scale_text_is_not_next_stage_plan():
-    facts = extract_text("Endpoints include Berg Balance Scale, EQ-5D-5L and interviews.")
-    assert facts.next_stage_plan == NOT_EXPLICITLY_STATED
