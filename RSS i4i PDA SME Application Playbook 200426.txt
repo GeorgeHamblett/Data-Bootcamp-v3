@@ -1,0 +1,2199 @@
+NIHR RSS – PDA APPLICATION PLAYBOOK
+A playbook to support PDA applications for small businesses (SMEs)
+
+Dawn Musgrave
+
+Dawn.musgrave@newcastle.ac.uk
+
+Contents
+NIHR i4i Product Development Award (PDA) Funding Playbook – 2026 Calls ............................................................................................................ 8
+1. Introduction & Purpose .................................................................................................................................................................................. 8
+Core Objectives ............................................................................................................................................................................................. 8
+How to Use This Playbook............................................................................................................................................................................... 8
+2. Eligibility & Programme Fit .............................................................................................................................................................................. 9
+Eligibility Overview ......................................................................................................................................................................................... 9
+Partner Requirements .................................................................................................................................................................................... 9
+Checklist – Eligibility & Scope ......................................................................................................................................................................... 9
+What Good Looks Like (WGLL) ........................................................................................................................................................................ 9
+Example – Project Fit Statement ................................................................................................................................................................... 10
+3. Technology Readiness & ARI-3 Alignment...................................................................................................................................................... 11
+A. Technology Readiness Level (TRL 3+) ........................................................................................................................................................ 11
+Checklist ..................................................................................................................................................................................................... 11
+WGLL .......................................................................................................................................................................................................... 11
+Template text: .............................................................................................................................................................................................. 12
+B. DHSC Area of Research Interest (ARI-3) ........................................................................................................................................................ 13
+Checklist ..................................................................................................................................................................................................... 13
+WGLL .......................................................................................................................................................................................................... 13
+Example ...................................................................................................................................................................................................... 13
+Dawn Musgrave, NIHR RSS
+
+4. Clinical Validation & Evidence Development ................................................................................................................................................. 14
+Definition..................................................................................................................................................................................................... 14
+Checklist ..................................................................................................................................................................................................... 14
+WGLL .......................................................................................................................................................................................................... 14
+Example ...................................................................................................................................................................................................... 14
+Template: Clinical Validation Block ............................................................................................................................................................... 15
+5. Health Economics ....................................................................................................................................................................................... 16
+5.1 Why Health Economics Matters .............................................................................................................................................................. 16
+5.2 Core Principles of Economic Evaluation .................................................................................................................................................. 16
+Identify: ....................................................................................................................................................................................................... 16
+Measure: ..................................................................................................................................................................................................... 17
+Value: .......................................................................................................................................................................................................... 17
+5.3 Types of Economic Evaluation .................................................................................................................................................................... 17
+Cost Effectiveness Analysis (CEA) ................................................................................................................................................................ 17
+Cost Utility Analysis (CUA) ............................................................................................................................................................................ 17
+Cost Benefit Analysis (CBA) .......................................................................................................................................................................... 17
+5.4 Choosing the Right Perspective .................................................................................................................................................................. 18
+5.5 Measuring and Valuing Outcomes .............................................................................................................................................................. 18
+Clinical Outcomes ....................................................................................................................................................................................... 18
+HRQoL Outcomes ........................................................................................................................................................................................ 18
+Monetary Outcomes (CBA) ........................................................................................................................................................................... 18
+5.6 Incremental Cost-Effectiveness & Interpretation ......................................................................................................................................... 19
+5.7 Modelling Approaches for Innovation .......................................................................................................................................................... 19
+Dawn Musgrave, NIHR RSS
+
+Appropriate models may include: ................................................................................................................................................................. 19
+Model justification must reflect: ................................................................................................................................................................... 20
+5.8 Health Economics and Equality Diversity and Inclusion ............................................................................................................................... 20
+Your HE plan should consider: ...................................................................................................................................................................... 20
+5.9 Developing the Value Proposition ............................................................................................................................................................... 20
+Your value proposition should be a clear, compelling narrative that demonstrates: ......................................................................................... 20
+5.10 CHECKLIST — Health Economics ............................................................................................................................................................. 21
+Economic Foundations ................................................................................................................................................................................ 21
+Evaluation Structure .................................................................................................................................................................................... 21
+Costing ........................................................................................................................................................................................................ 21
+Modelling..................................................................................................................................................................................................... 21
+Value Proposition ......................................................................................................................................................................................... 22
+EDI .............................................................................................................................................................................................................. 22
+5.11 WHAT GOOD LOOKS LIKE (WGLL)............................................................................................................................................................. 22
+A strong Health Economics section will show: ............................................................................................................................................... 22
+5.12 TEMPLATES & TOOLS ............................................................................................................................................................................... 24
+Template A — Economic Evaluation Plan ...................................................................................................................................................... 24
+Template B — Value Proposition Statement ...................................................................................................................................................... 25
+1. Problem / Need Describe the clinical or operational issue, its scale, and consequences. ........................................................................... 25
+2. Innovation What your technology does, why it is different, and key features. .............................................................................................. 25
+3. Evidence of Benefit Clinical, operational, or experiential benefits. ............................................................................................................ 25
+4. Economic Impact ..................................................................................................................................................................................... 25
+5. Strategic Fit Alignment with:...................................................................................................................................................................... 25
+Dawn Musgrave, NIHR RSS
+
+6. Adoption Case Why NHS commissioners should invest, how return on investment occurs, and risks/mitigations. .......................................... 26
+Template C — NICE Alignment Summary ...................................................................................................................................................... 27
+Checklist ..................................................................................................................................................................................................... 27
+What Good Looks Like .................................................................................................................................................................................. 28
+Equations & Models ..................................................................................................................................................................................... 28
+Incremental Cost Effectiveness Ratio (ICER): ............................................................................................................................................... 28
+Return on Investment (ROI): ......................................................................................................................................................................... 28
+Example Text................................................................................................................................................................................................ 29
+6. Patient and Public Involvement & Engagement (PPIE) – Working with people and communities ....................................................................... 30
+Purpose ....................................................................................................................................................................................................... 30
+What should you do and what should you include in the application?............................................................................................................. 30
+NIHR payment for involvement ..................................................................................................................................................................... 31
+Payment rates .............................................................................................................................................................................................. 31
+PPIE Checklist ............................................................................................................................................................................................. 31
+What good looks like .................................................................................................................................................................................... 32
+Building a PPIE plan ..................................................................................................................................................................................... 32
+Key Resources & Tools for PPIE – see appendix .............................................................................................................................................. 32
+7. Plain English Summary ................................................................................................................................................................................. 32
+Purpose ....................................................................................................................................................................................................... 32
+What good looks like .................................................................................................................................................................................... 33
+8. Research Inclusion ...................................................................................................................................................................................... 33
+Purpose ....................................................................................................................................................................................................... 33
+What should you do and what should you include in the application?............................................................................................................. 34
+Dawn Musgrave, NIHR RSS
+
+What good looks like .................................................................................................................................................................................... 36
+Research Inclusion Checklist ....................................................................................................................................................................... 37
+9. Project Management & Workplan.................................................................................................................................................................. 38
+Checklist ..................................................................................................................................................................................................... 38
+What Good Looks Like .................................................................................................................................................................................. 38
+Example Work Package Table ....................................................................................................................................................................... 38
+Sample Gantt Layout.................................................................................................................................................................................... 39
+Risk Register Summary................................................................................................................................................................................. 39
+10. Market & Impact Analysis ........................................................................................................................................................................... 40
+Checklist ..................................................................................................................................................................................................... 40
+Quick Equations .......................................................................................................................................................................................... 40
+Example Market Sizing Table ......................................................................................................................................................................... 40
+WGLL .......................................................................................................................................................................................................... 41
+Example Text................................................................................................................................................................................................ 41
+11. Finance Chapter ........................................................................................................................................................................................ 42
+11.1 NIHR Expectations for the Finance Section ............................................................................................................................................ 42
+NIHR requires: ............................................................................................................................................................................................. 42
+11.2 Required RMS Cost Categories.............................................................................................................................................................. 42
+These must be used exactly: ......................................................................................................................................................................... 42
+11.3 Costing Rules by Organisation Type .......................................................................................................................................................... 44
+HEIs ............................................................................................................................................................................................................ 44
+NHS Providers.............................................................................................................................................................................................. 44
+Commercial / Industry Partners .................................................................................................................................................................... 44
+Dawn Musgrave, NIHR RSS
+
+11.4 Allowable vs Non-Allowable Costs ............................................................................................................................................................ 44
+Allowable ........................................................................................................................................................................................................ 44
+Non-Allowable ............................................................................................................................................................................................. 44
+11.5 PPIE Costing Requirements ..................................................................................................................................................................... 45
+NIHR Payment Guidance Requirements ........................................................................................................................................................ 45
+Reference Rates........................................................................................................................................................................................... 45
+11.6 Open Access Funding Requirements (NIHR OA Policy)............................................................................................................................... 46
+OA costs must not be included in your project budget: .................................................................................................................................. 46
+11.7 Value for Money Requirements ................................................................................................................................................................. 47
+Applicants must:.......................................................................................................................................................................................... 47
+11.8 Budget Template (RMS-Aligned) ................................................................................................................................................................ 47
+Checklist......................................................................................................................................................................................................... 48
+What Good Looks Like .................................................................................................................................................................................. 48
+Budget Template .......................................................................................................................................................................................... 48
+Value for Money Equation ................................................................................................................................................................................ 49
+12. Reviewer Rubric & Final Checklists ............................................................................................................................................................. 50
+Assessment Criteria Overview ...................................................................................................................................................................... 50
+Scoring Bands.............................................................................................................................................................................................. 50
+Final Pre-Submission Checklist ........................................................................................................................................................................ 51
+Appendices ........................................................................................................................................................................................................ 52
+A. Health Economics Worked Model................................................................................................................................................................. 52
+B. Risk Register Template ................................................................................................................................................................................. 52
+C. Gantt Chart Shell ..................................................................................................................................................................................... 53
+Dawn Musgrave, NIHR RSS
+
+D. Value for Money (ROI) Formula ................................................................................................................................................................. 53
+E. Pre-Submission Summary ........................................................................................................................................................................ 54
+F. Useful Links .............................................................................................................................................................................................. 54
+G. PPIE Resources........................................................................................................................................................................................ 54
+H. EDI Resources ......................................................................................................................................................................................... 55
+End Note ......................................................................................................................................................................................................... 56
+
+Dawn Musgrave, NIHR RSS
+
+NIHR i4i Product Development Award (PDA) Funding Playbook – 2026 Calls
+Funding at the Pace of Adoption
+Dawn Musgrave, NIHR RSS February 2026
+
+1. Introduction & Purpose
+The i4i Product Development Award (PDA) is designed to accelerate the translation of promising health technologies into validated, deployable
+solutions within the UK health and social care system.
+The PDA funds multidisciplinary, multistage projects that generate the clinical, regulatory, usability and economic evidence needed for adoption by
+the NHS. Typical projects last up to 3 years, with no maximum finding threshold as NIHR are encouraging ambitious projects, with the potential to
+make a real impact.
+
+Core Objectives
+•
+
+Deliver robust clinical validation and regulatory readiness for an innovative health technology.
+
+•
+
+Demonstrate safety, efficacy, usability, and cost effectiveness of the technology.
+
+•
+
+Strengthen workforce capacity and pathways to adoption of the technology.
+
+•
+
+Foster inclusive, equitable innovation addressing workforce inequality and digital accessibility.
+
+How to Use This Playbook
+•
+
+The Playbook is intended as a companion to official PDA guidance and the NIHR Awards Management System portal.
+
+•
+
+Offers actionable checklists, What Good Looks Like (WGLL) boxes, examples, and embedded templates.
+
+•
+
+Designed for SMEs, NHS trusts, and social enterprise applicants collaborating on translational research.
+
+Dawn Musgrave, NIHR RSS
+
+2. Eligibility & Programme Fit
+Eligibility Overview
+Eligible Applicant Organisations (applications must have co-applicants from at least two of the following)
+•
+
+NHS providers or social care organisations
+
+•
+
+Higher Education Institutions (HEIs)
+
+•
+
+Small and Medium Enterprises (SMEs <250 staff, <€50 m turnover)
+
+•
+
+Charities / CICs / Not-for-profits
+
+Partner Requirements
+•
+
+Industry collaboration encouraged but not mandatory.
+
+•
+
+Clinical or care partner essential for deployment and regulatory evidence.
+
+•
+
+All activity must take place in the UK (other than allowable subcontracting).
+
+Checklist – Eligibility & Scope
+☐ Lead is eligible (verified with NIHR criteria).
+☐ Project has documented TRL 3 or above (demonstrated proof of concept).
+☐ Work packages fit within i4i PDA call scope (development/validation/adoption readiness).
+☐ NHS or social care value explicitly demonstrated.
+☐ PPIE, health economics and inclusion elements costed.
+
+What Good Looks Like (WGLL)
+•
+
+Demonstrates alignment with the NIHR i4i mission: enabling adoption of affordable, impactful technologies.
+
+•
+
+Shows translational readiness — clear pathway from innovation → evidence → NHS integration.
+
+•
+
+Provides evidence of partner commitment (letters of support attached).
+
+Dawn Musgrave, NIHR RSS
+
+Example – Project Fit Statement
+“This i4i PDA project develops and clinically validates an AIassisted community imaging solution for stroke risk triage, supported by three NHS sit
+es and a London SME developer. The project addresses ARI3 workforce priorities by reducing radiographer load and enabling rapid diagnosis in n
+onacute settings.”
+
+Dawn Musgrave, NIHR RSS
+
+3. Technology Readiness & ARI-3 Alignment
+A. Technology Readiness Level (TRL 3+)
+Definition: PDA projects must have demonstrated proof of concept – i.e.
+start at TRL 3 or above — a validated prototype tested in a relevant clinical or community environment.
+
+Checklist
+☐ TRL stated numerically and linked to evidence (e.g. feasibility study).
+☐ Real-world testing completed with patients or end users.
+☐ Next development step (TRL 4–6) clearly defined.
+☐ Evidence files or references included.
+
+WGLL
+•
+
+Real-world performance data, not just lab bench testing.
+
+•
+
+Functional prototype used by patients or clinicians with feedback integrated.
+
+•
+
+Defined progression milestone (e.g. pilot trial or certification readiness).
+
+Example
+Example (TRL 3 Activity)
+
+Evidence Generated (Typical TRL 3
+Outputs)
+
+Next Step (FAST Focus – Progression Toward
+TRL 4)
+
+Core component algorithm demonstrated in controlled lab
+tests
+
+Analytical proof‑of‑concept showing
+technical feasibility
+
+Functional feasibility testing of early prototype
+
+Early benchtop prototype tested with synthetic or
+retrospective data
+
+Experimental validation of core
+functions
+
+Integration of components into a basic working
+prototype
+
+Initial concept wireframes or interaction model evaluated
+with 5–10 users (formative only)
+
+Early human‑factor insights
+(qualitative only)
+
+Develop and usability‑test an early functional
+prototype (Tier‑C style)
+
+Dawn Musgrave, NIHR RSS
+
+Subsystem modelled or simulated to verify performance
+parameters
+
+Demonstrated theoretical
+performance and constraints
+
+Build and test integrated subsystem in realistic
+conditions
+
+Template text:
+Template (Example Text)
+“Our technology is currently at TRL 3, demonstrated through early analytical and experimental proof‑of‑concept testing in a controlled lab
+environment. The FAST project will generate evidence on functional feasibility and preliminary usability to progress the technology toward TRL 4.”
+
+Dawn Musgrave, NIHR RSS
+
+B. DHSC Area of Research Interest (ARI-3)
+All i4i PDA projects must demonstrate alignment to the DHSC ARI3 theme: Strengthening the Health and Care Workforce.
+
+Checklist
+☐ Explicitly references ARI-3 in proposal text.
+☐ Innovation reduces workforce burden or re-skills staff for digital/community care.
+☐ Supports NHS transitions: Hospital→Community, Analogue→Digital, Sickness→Prevention.
+
+WGLL
+•
+
+Clear narrative mapping technology benefits to workforce productivity and care quality.
+
+•
+
+Quantified impact (e.g. FTE released, speed of triage improvement).
+
+Example
+“This project addresses ARI-3 by automating manual ECG interpretation, reducing analysis time per case from 6 minutes to 1 minute (80 % efficiency
+gain), and allowing re-allocation of technicians to direct patient support.”
+Reference: DHSC Areas of Research Interest – Workforce
+
+Dawn Musgrave, NIHR RSS
+
+4. Clinical Validation & Evidence Development
+Definition
+Clinical validation in i4i PDA refers to the systematic process of generating evidence to ensure safety, efficacy and user acceptance of new
+technologies across hospital and community pathways.
+
+Checklist
+☐ Defined clinical validation question.
+☐ Ethical + regulatory approvals planned.
+☐ Study designed (large pilot or feasibility) and powered appropriately.
+☐ Endpoints aligned with NICE or NHS adoption criteria.
+☐ Clinical and deployment partners confirmed.
+
+WGLL
+•
+
+Multisite feasibility with appropriate patient numbers.
+
+•
+
+Validated measurement tools and clinician training.
+
+•
+
+Integration with existing care pathways and real-world data sources.
+
+•
+
+Clear plan for next stage of work (post i4i PDA) – e.g. RFPB or HTA application for subsequent trial.
+
+Example
+“This i4i PDA project will undertake a twoarm nonrandomised validation study across three NHS sites to assess accuracy and usability of a remote rehabilitation platform in stroke recove
+ry. Endpoints include compliance rate and physiotherapist time saved.The next stage would be a randomised trial to assess effectiveness
+
+Dawn Musgrave, NIHR RSS
+
+Template: Clinical Validation Block
+Component Description
+Objective
+
+Define what clinical gap this validates.
+
+Design
+
+Feasibility / Pilot / Comparative study type.
+
+Endpoints
+
+Clinical, usability, workflow metrics.
+
+Sites
+
+List NHS partners and catchment populations.
+
+Duration
+
+Months and expected output.
+
+Next Step
+
+Follow-on funding or regulatory submission.
+
+Dawn Musgrave, NIHR RSS
+
+5. Health Economics
+Health economics provides a structured approach for evaluating whether an innovation delivers sufficient benefit relative to cost to justify NHS
+investment. For i4i PDA applications, this is essential: decisions must reflect clinical impact, affordability, opportunity cost, and system level value.
+
+5.1 Why Health Economics Matters
+NHS budgets face scarcity: demand and available interventions increase faster than funding. Economic evaluation helps ensure resources are
+allocated fairly and efficiently, guided by concepts such as:
+•
+
+Opportunity cost: using resources for one innovation means they cannot be used elsewhere — a core economic principle.
+
+•
+
+Non-competitive healthcare markets: information asymmetry, limited choice, and lack of price signals mean economic evaluation becomes
+essential for rational decision-making.
+
+•
+
+Societal health maximisation: aligning innovation investment with the greatest health gain relative to cost.
+
+•
+
+A clear economic case helps NHS decision-makers and NICE assess whether your innovation is a good use of scarce resources.
+
+5.2 Core Principles of Economic Evaluation
+Economic evaluation compares alternative courses of action using a systematic framework:
+The Identify–Measure–Value Process
+
+Identify:
+•
+
+Resources consumed (staff, equipment, consumables, service use)
+
+•
+
+Outcomes generated (clinical and quality of life changes)
+
+Dawn Musgrave, NIHR RSS
+
+Measure:
+•
+
+Quantities of resources used
+
+•
+
+Effects using clinical endpoints or HRQoL instruments (e.g. EQ-5D-5L)
+
+Value:
+•
+
+Apply costs using unit tariffs or micro-costing
+
+•
+
+Convert outcomes into cross comparable measures (e.g., QALYs, monetary valuations)
+
+This framework underpins all formal approaches to economic evaluation.
+
+5.3 Types of Economic Evaluation
+Different evaluation types answer different decision questions:
+
+Cost Effectiveness Analysis (CEA)
+•
+
+Measures outcomes in natural units (e.g. events avoided, pain scores).
+
+•
+
+Most useful when the main outcome can be expressed using a single, straightforward measure.
+
+Cost Utility Analysis (CUA)
+•
+
+Measures outcomes in quality-adjusted life years (QALYs).
+
+•
+
+Preferred for NICE-aligned decision-making because QALYs facilitates comparisons for decision-makers between different types of interventions
+
+Cost Benefit Analysis (CBA)
+•
+
+Values both costs and consequences monetarily (e.g., willingness-to-pay).
+
+•
+
+If benefits are greater than costs, then the technology is considered to be an efficient use of resources
+
+Dawn Musgrave, NIHR RSS
+
+The playbook recommends CEA + CUA for i4i PDA projects unless strong rationale for CBA exists.
+
+5.4 Choosing the Right Perspective
+The ‘perspective’ determines which costs/outcomes are included. Perspectives may include:
+•
+
+NHS and Personal Social Services — the NICE reference case.
+
+•
+
+Patient perspective — for capturing burden reduction, travel, time costs.
+
+•
+
+Societal perspective — including productivity, carer contributions.
+
+Choose the perspective that reflects your research question and adoption route and justify it clearly.
+
+5.5 Measuring and Valuing Outcomes
+Clinical Outcomes
+•
+
+Event reduction
+
+•
+
+Disease progression
+
+•
+
+Functional measures
+
+HRQoL Outcomes
+•
+
+EQ-5D-5L for QALY calculation (NICE standard)
+
+•
+
+Condition-specific tools for sensitivity analysis
+
+Monetary Outcomes (CBA)
+•
+
+Stated/revealed preference approaches (e.g., willingness-to-pay)
+
+Dawn Musgrave, NIHR RSS
+
+Note the importance of modelling outcomes for diverse patient groups to support EDI.
+
+5.6 Incremental Cost-Effectiveness & Interpretation
+If one technology is not dominant (i.e., less costly and more effective) than an ICER is used to summarise value:
+ICER = (Cost_new – Cost_standard) / (Effect_new – Effect_standard)
+Understanding uncertainty is crucial:
+•
+
+Cost-effectiveness plane helps interpret whether an innovation is cheaper/more effective.
+
+•
+
+Sensitivity analyses (deterministic + probabilistic) strengthen confidence in your estimates.
+
+•
+
+Cost-effectiveness acceptability curves (CEACs) illustrate the probability of the technology being cost-effective for different thresholds for
+an additional unit of benefit (e.g., QALYs)
+
+NICE typically uses thresholds (e.g., ~£25–£35k per QALY) to judge whether interventions represent good value.
+
+5.7 Modelling Approaches for Innovation
+i4i PDA projects often require modelling because long-term outcomes exceed the study period and modelling is required to support extrapolation of
+benefits and costs.
+
+Appropriate models may include:
+•
+
+Decision trees (short-term decisions or single events)
+
+•
+
+Markov/state-transition models (chronic or repeated events)
+
+•
+
+Simulation-based models (complex pathway interactions)
+
+Dawn Musgrave, NIHR RSS
+
+Model justification must reflect:
+•
+
+Clinical pathway
+
+•
+
+Disease progression
+
+•
+
+Time horizon
+
+•
+
+Perspective
+
+•
+
+Parameter uncertainty
+
+•
+
+Model validation
+
+5.8 Health Economics and Equality Diversity and Inclusion
+NIHR emphasises inclusion and equity, and health economics modelling can create subgroup outcomes to support EDI.
+
+Your HE plan should consider:
+•
+
+Utility differences across demographic groups
+
+•
+
+Digital exclusion impacts
+
+•
+
+Baseline risk differences
+
+•
+
+Variations in pathways or access barriers
+
+•
+
+Distributional cost-effectiveness analysis (if feasible)
+
+5.9 Developing the Value Proposition
+Your value proposition should be a clear, compelling narrative that demonstrates:
+•
+
+What problem your solution addresses and how it supports adoption
+
+Dawn Musgrave, NIHR RSS
+
+•
+
+The measurable benefit to patients
+
+•
+
+Efficiency gains (staff time, reduced appointments, better flow)
+
+•
+
+Cost savings or offsets
+
+•
+
+Alignment with NHS priorities (e.g., community care, waiting list reduction)
+
+•
+
+Why it is worth the public investment
+
+5.10 CHECKLIST — Health Economics
+Economic Foundations
+•
+
+☐ Opportunity cost described in relation to NHS resource allocation.
+
+•
+
+☐ Perspective stated and justified.
+
+•
+
+☐ Health economist identified as project partner.
+
+Evaluation Structure
+•
+
+☐ Identify–Measure–Value applied systematically.
+
+•
+
+☐ Appropriate economic evaluation type justified (CEA, CUA, CBA).
+
+•
+
+☐ QALYs measured using validated HRQoL tools.
+
+Costing
+•
+
+☐ All cost categories defined (NHS costs, patient costs, service use).
+
+•
+
+☐ Resource use data collection described.
+
+Modelling
+•
+
+☐ Model structure selected (decision tree/Markov/etc.).
+
+•
+
+☐ Assumptions justified and sources listed.
+
+Dawn Musgrave, NIHR RSS
+
+•
+
+☐ Sensitivity analyses planned.
+
+Value Proposition
+•
+
+☐ Clear problem and unmet need.
+
+•
+
+☐ Quantified benefits and system efficiencies.
+
+•
+
+☐ Alignment with NICE or NHS thresholds.
+
+EDI
+•
+
+☐ Differences across patient groups considered.
+
+•
+
+☐ Health inequality impacts modelled or discussed.
+
+5.11 WHAT GOOD LOOKS LIKE (WGLL)
+A strong Health Economics section will show:
+•
+
+A health economist is actively involved in design and throughout the study.
+
+•
+
+Clear justification for evaluation type and perspective.
+
+•
+
+Strong evidence base for costs and outcomes.
+
+•
+
+QALYs calculated using EQ-5D-5L with transparent methodology.
+
+•
+
+A well-constructed model aligned to clinical pathways.
+
+•
+
+Sensitivity analyses demonstrating robustness.
+
+•
+
+An adoption-focused narrative linking the economic case to NHS priorities.
+
+•
+
+A compelling value proposition showing both clinical and operational benefits.
+
+•
+
+Consideration of underserved and digitally excluded groups.
+
+Dawn Musgrave, NIHR RSS
+
+This reflects not just technical modelling competence but strategic alignment with NHS decision-making.
+
+Dawn Musgrave, NIHR RSS
+
+5.12 TEMPLATES & TOOLS
+Template A — Economic Evaluation Plan
+Heading
+
+Description to Complete
+
+Research Question
+
+What decision will the economic evaluation inform?
+
+Perspective
+
+NHS/PSS, patient, societal — justify choice.
+
+Time Horizon
+
+How long outcomes must be modelled and why.
+
+Comparator
+
+What existing standard/practice is used.
+
+Cost Components
+
+List all cost drivers and data sources.
+
+Outcome Measures
+
+Clinical + HRQoL; include EQ-5D-5L.
+
+Modelling Approach Decision tree / Markov / simulation etc.
+Sensitivity Analyses
+
+One-way, scenario, PSA.
+
+Data Sources
+
+Trials, literature, expert elicitation.
+
+Assumptions
+
+Clearly list and justify.
+
+Dawn Musgrave, NIHR RSS
+
+Template B — Value Proposition Statement
+1. Problem / Need
+Describe the clinical or operational issue, its scale, and consequences.
+2. Innovation
+What your technology does, why it is different, and key features.
+3. Evidence of Benefit
+Clinical, operational, or experiential benefits.
+4. Economic Impact
+•
+
+Cost savings
+
+•
+
+Efficiency gains
+
+•
+
+Avoided treatment costs
+
+•
+
+Staff time released
+
+5. Strategic Fit
+Alignment with:
+•
+
+NHS Long Term Plan
+
+•
+
+ARI3 priorities
+
+•
+
+NICE guidance or equivalent frameworks
+
+Dawn Musgrave, NIHR RSS
+
+6. Adoption Case
+Why NHS commissioners should invest, how return on investment occurs, and risks/mitigations.
+
+Dawn Musgrave, NIHR RSS
+
+Template C — NICE Alignment Summary
+Use this template to make your HE approach ‘NICE ready’.
+NICE Requirement
+
+How Your Project Meets It
+
+Use of QALYs
+
+Describe EQ-5D-5L data collection and analysis.
+
+Comparator Validity
+
+Confirm comparator reflects “current best practice.”
+
+Time Horizon
+
+Ensure long enough to capture all important costs and benefits.
+
+Perspective
+
+State NHS/PSS perspective.
+
+Model Structure Justification Explain why your model suits the disease pathway.
+Uncertainty Analysis
+
+Describe planned PSA + scenario analyses.
+
+Equity Considerations
+
+Identify groups where benefit/cost differs.
+
+Checklist
+☐ Economic outcomes clearly stated (e.g. cost per QALY gained, ROI ratio).
+☐ Evidence to date summarised and gaps identified.
+☐ Data collection plan for resource use, cost drivers, and outcomes.
+☐ Pathway mapping of current care vs innovation.
+☐ Scenario modelling and sensitivity analysis planned.
+
+Dawn Musgrave, NIHR RSS
+
+What Good Looks Like
+•
+
+Integration of health economist on team (HEI or consultancy partner).
+
+•
+
+Use of NHS tariffs and credible sources (NICE HTA thresholds £25k–£35k per QALY).
+
+•
+
+Incremental cost-effectiveness ratio (ICER) reported or planned.
+
+•
+
+Transparent assumptions with best/worst case scenarios/sensitivity analyses.
+
+Equations & Models
+Incremental Cost Effectiveness Ratio (ICER):
+ICER=Cinnovation−Cstandard / Einnovation−Estandard
+Where:
+- C = Cost per patient pathway
+- E = Effect (e.g. QALYs, readmission rate, unit outcome)
+
+Return on Investment (ROI):
+ROI(%)=(Total Benefits−Project Costs)Project Costs× 100ROI(\%) = \frac{(\text{Total Benefits} - \text{Project Costs})}{\text{Project Costs}}
+\times 100ROI(%)=Project Costs(Total Benefits−Project Costs)× 100
+Worked Example
+Component
+
+Current Standard (£) Proposed Innovation (£) Source
+
+Admission per patient 1,200
+
+800
+
+Hospital tariff
+
+Follow-up visits
+
+400
+
+200
+
+Primary care data
+
+Staff time
+
+600
+
+300
+
+Pilot study
+
+Dawn Musgrave, NIHR RSS
+
+Component
+
+Current Standard (£) Proposed Innovation (£) Source
+
+Total cost per patient
+
+2,200
+
+1,300
+
+Saving: £900 per patient × 1,000 patients = £900,000 / year
+ICER: If +0.02 QALYs gained per patient → £900 / 0.02 = £45,000/QALY (approaching viability threshold).
+
+Example Text
+“A preliminary analysis will quantify NHS savings based on avoided outpatient visits and reduced readmissions, providing an initial ICER and ROI
+to support future cost utility modelling.”
+
+Dawn Musgrave, NIHR RSS
+
+6. Patient and Public Involvement & Engagement (PPIE) – Working with people and communities
+Purpose
+Public involvement in research, or PPIE, is defined as research being carried out ‘with’ or ‘by’ members of the public rather than ‘to’, ‘about’ or ‘for’
+them. It is an active partnership between the public and researchers. ‘The public’ can refer to patients, members of the public, service users, carers
+and community organisations.
+When people with different types of lived experience shape research, the innovations and the research process itself are more likely to be inclusive,
+reflect real priorities and have meaningful impact on people’s lives.
+PPIE is central to the NIHR’s i4i PDA programme. It is currently referred to as ‘working with people and communities’ in application documents.
+
+What should you do and what should you include in the application?
+You should involve members of the public from the earliest possible stage, when identifying your research questions and designing your research
+plan (at pre-application stage). Early involvement means that plans can be shaped together. You should then make a plan for public involvement
+throughout the project. Involvement at all stages can take different forms, ranging from consultation to co-production: to help you plan this work,
+you can find more information about these approaches here. You can also find out more about involvement at different points in the research cycle
+here. You can use the PPIE Planner to help you describe your plans.
+For an outline application, applicants must include information on working with people and communities within the research plan (currently, in the
+Methodology/Plan section). You should describe how public contributors have been involved so far – who has shaped this proposal so far, why and
+how? You should then describe who will be involved throughout the research/award lifecycle, why and how?
+For a full application, you need to build on and add more detail to the plans that you outlined, and justify any changes. You should include a detailed
+summary of public involvement so far and involvement plans (currently ‘Working with people and communities summary’), and clearly detail public
+involvement in your research plan, too. You should name a PPI Lead who will coordinate this work.
+For more details on what to include for both an outline and a full application, please see NIHR’s guidance for applications on working with people
+and communities.
+
+Dawn Musgrave, NIHR RSS
+
+NIHR payment for involvement
+It is important that members of the public are offered payment for their time and expertise when they get involved in research. Additionally, their
+expenses (e.g. for travel) should be covered so that they are not left out of pocket. Good practice around payments includes:
+•
+•
+•
+•
+•
+•
+•
+
+Budgeting for involvement with advice from public contributors at pre-application stage;
+Developing a clear policy around payments, before involvement happens;
+Seeking advice and input where relevant from your organisation’s finance and human resources teams;
+Sharing clear steps, amounts offered and timelines with contributors;
+Sharing information with contributors around potential impact on welfare benefits – more information here;
+Ensuring contributors are not out of pocket, with expenses paid in advance where possible;
+Discussing flexibility around payments or other forms of remuneration and recognition which some public contributors may prefer.
+
+Payment rates
+£13.80 - For involvement in a task or activity such as reading and commenting on an abstract which equates to less than half an hour. For example,
+reviewing papers.
+£27.50 - For involvement in a task or activity requiring little or no preparation and which equates to approximately one hour of activity or less. For
+example, participating in a focus group to provide feedback on a proposal.
+Further rates (and details about paying people for involvement) are available here.
+
+PPIE Checklist
+☐ Described involvement so far and how it has shaped the research
+☐ Described involvement plans (e.g. advisory group, co-production plans, public co-applicants)
+☐ Named PPIE lead
+☐ Payment and support included in budget, using NIHR rates
+☐ Activities are inclusive and you are taking active steps to involve people with a diverse range of perspectives and lived experiences
+☐ Described how involvement might make a difference (to the research, to the innovation, to contributors), and how you might capture this, evaluate
+it and share any learning
+Dawn Musgrave, NIHR RSS
+
+What good looks like
+•
+•
+•
+•
+•
+
+Shaping the research together – public involvement is about prioritising, shaping, designing and delivering the research in collaboration with
+members of the public, and it is not the same as user testing, which is part of your research rather than part of your PPIE.
+Quality over quantity – focus on relationship building and depth of conversations, rather than trying to involve as many people as possible.
+Diversity - involve public contributors with diverse perspectives and a broad range of lived experiences, and consider partnering with
+community organisations who have huge knowledge and experience in this area.
+Fair budget – make sure you have budgeted for payment, expenses and any support that public contributors might need to get involved.
+Impact – clearly demonstrate how PPIE has shaped the research (describe changes to decisions so far), how you will embed it in decisionmaking going forward, and how you will evaluate this impact in the project.
+
+Building a PPIE plan
+You can use the PPIE Planner to help you write your PPIE plan. It starts with an exercise to think more broadly about your PPIE then guides you
+through the different stages of the research cycle and prompts you to record your plans.
+https://plan4ppie.com/
+
+Key Resources & Tools for PPIE – see appendix
+
+7. Plain English Summary
+Purpose
+You will need to write a clear and easy-to-read summary about your proposed research, in 3500 characters. This is different from a scientific
+abstract. You should avoid jargon and overly complicated language, and explain any technical terms if you do need to use them.
+Your plain English summary will be read by people reviewing your application who may not have specialist knowledge of your research field
+(including members of the public). If your application is successful, your summary will be used on NIHR and other websites.
+Please see NIHR’s guidance on how to write a plain English summary.
+Dawn Musgrave, NIHR RSS
+
+What good looks like
+•
+•
+•
+•
+•
+
+Written in Plain English, accessible to everyone
+Jargon free
+Any technical or medical terms explained
+Active over passive voice (e.g. We will recruit patients rather than Patients will be recruited)
+Good balance of information between 5 key sections outlined on NIHR webpage above: background, aims, research plan/methods, working
+with people and communities, and knowledge mobilisation
+
+8. Research Inclusion
+Purpose
+Research inclusion (RI) is the deliberate practice of ensuring that research is designed, conducted, and disseminated in ways that represent and
+benefit a broad and diverse range of people, perspectives, and contexts. It has been a condition for NIHR funding since November 2024. Addressing
+research inclusion in your project is important for several reasons:
+•
+•
+•
+•
+•
+
+Scientific rigour: using a diverse sample increases the accuracy, translatability and reproducibility of research.
+Patient safety, care and health outcomes: treatments, services and initiatives may be ineffective or harmful if differences between groups are
+not defined.
+Economic impact: less research waste and improved practice and health outcomes translate into positive economic impact at individual
+and population levels.
+Human rights and ethics: there is a moral imperative to ensure that NIHR’s research benefits all people in society and fulfils everyone’s right
+to health and social care.
+Legal justification: research that is not inclusive can constitute discrimination under the Equality Act 2010
+
+Along with the Research Inclusion policy, the NIHR has the Sex & Gender policy, which has been active since December 2025. The policy states that
+researchers must account for sex and gender in their research, in any datasets they use, and in the data they collect from their participants. More
+information can be found here: https://www.nihr.ac.uk/about-us/who-we-are/policies-and-guidelines/sex-and-gender-research
+
+Dawn Musgrave, NIHR RSS
+
+What should you do and what should you include in the application?
+1. Embed RI throughout the research lifecycle: Integrate RI considerations from the earliest stages of idea development through to
+dissemination and impact.
+What to include in your application:
+•
+
+A clear statement explaining how RI has shaped your research question and design
+
+•
+
+Examples of decisions influenced by RI (e.g. choice of methods, recruitment strategies)
+
+•
+
+Plans for reviewing RI throughout the project lifecycle
+
+2. Involve public contributors from the start: Work with patients, service users, or community members from the outset and throughout
+the project.
+What to include in your application:
+•
+
+Who your public contributors are and how they were identified
+
+•
+
+Their role at each stage (design, delivery, analysis, dissemination)
+
+•
+
+How you will support and remunerate them appropriately
+
+•
+
+Evidence of early involvement (not just future plans)
+
+3. Include underrepresented and underserved groups: Actively design your study to reach populations that are often excluded or
+underrepresented in research.
+What to include in your application:
+•
+
+Identification of relevant underserved groups for your research topic
+
+•
+
+Tailored recruitment strategies (e.g. partnerships with community organisations)
+
+•
+
+Explanation of how inclusion will improve the relevance and impact of your research
+
+Dawn Musgrave, NIHR RSS
+
+4. Ensure accessibility and inclusion in all project elements: Design your study so that participation is accessible and inclusive.
+What to include in your application:
+•
+
+Details of accessible formats for participant information (e.g. plain English, Easy Read)
+
+•
+
+Options for different modes of participation (online, in-person, telephone)
+
+•
+
+Consideration of barriers such as disability, caring responsibilities, or digital exclusion
+
+•
+
+Accessibility of venues, platforms, and materials
+
+5. Build a diverse research team: Assemble a team with diverse expertise, perspectives, and lived experiences.
+What to include in your application:
+•
+
+Description of team diversity (disciplinary, professional, experiential)
+
+•
+
+Roles of team members, including public contributors or community partners
+
+•
+
+How inclusive practices will be embedded in team working and decision-making
+
+6. Justify any exclusions: Critically assess whether any groups are being excluded and ensure this is justified.
+What to include in your application:
+•
+
+Clear rationale for any inclusion/exclusion criteria
+
+•
+
+Explanation of why exclusion is necessary (e.g. safety, scientific validity)
+
+•
+
+Reflection on how exclusions may limit generalisability
+
+7. Account for sex and gender: Incorporate sex and gender considerations where relevant to your research.
+Dawn Musgrave, NIHR RSS
+
+What to include in your application:
+•
+
+Whether and how sex will be considered in study design and analysis
+
+•
+
+Whether and how gender (including gender identity) is relevant
+
+•
+
+Justification if sex and/or gender are not considered
+
+8. Plan inclusive and accessible outputs: Ensure your findings are shared in ways that reach diverse audiences.
+What to include in your application:
+•
+
+A dissemination plan with multiple formats (e.g. plain language summaries, visual outputs, translations)
+
+•
+
+Consideration of audiences with different needs (e.g. children, non-native English speakers, people with disabilities)
+
+•
+
+Plans to involve public contributors in dissemination
+
+9. Budget for inclusion: Allocate sufficient resources to support inclusive research practices.
+What to include in your application:
+•
+
+Costs for public involvement (including payment and expenses)
+
+•
+
+Translation, interpretation, and accessible materials
+
+•
+
+Accessibility needs (e.g. venues, software, assistive technologies)
+
+•
+
+Training for the research team (e.g. cultural competency, EDI)
+
+What good looks like
+Strong RI is embedded throughout the proposal rather than treated as an add-on. Good applications clearly identify underserved groups and show
+how their inclusion improves relevance and impact. RI is reflected in the study design through inclusive recruitment, accessible participation, and
+appropriate consideration of sex and gender, with any exclusions justified. Meaningful public involvement is evident from the outset, and the team
+Dawn Musgrave, NIHR RSS
+
+brings diverse expertise and perspectives. Plans are realistic, with barriers anticipated and resources allocated, including appropriate budgeting for
+inclusion. Dissemination is accessible to a range of audiences. Overall, strong applications demonstrate specific, well-resourced actions and a clear
+link between RI and research quality, feasibility, and impact.
+
+Research Inclusion Checklist
+☐ Have you identified underserved or underrepresented populations relevant to your topic?
+☐ Have you explained how your research addresses health inequalities or evidence gaps?
+☐ Are recruitment strategies inclusive and tailored to different groups?
+☐ Are participation methods accessible (format, timing, location)?
+☐ Are sex and gender appropriately considered in design and analysis?
+☐ Are any exclusions clearly justified and explained?
+☐ Have public contributors been involved from the earliest stages?
+☐ Are support, training, and payment clearly planned?
+☐ Does the team include diverse expertise, perspectives, or lived experience?
+☐ Are community partners or public contributors meaningfully integrated?
+☐ Are your inclusion and recruitment plans realistic and well-supported?
+☐ Have you anticipated barriers (e.g. trust, access, language) and addressed them?
+☐ Have you allocated sufficient resources to deliver inclusive approaches?
+☐ Have you costed public involvement (including payment and expenses)?
+☐ Are accessibility costs included (e.g. interpreters, materials, venues)?
+☐ Are outputs accessible to diverse audiences (not just academic)?
+☐ Are multiple formats planned (e.g. plain English, translations, visual)?
+☐ Have you considered digital exclusion and language barriers?
+☐ Are public contributors involved in dissemination?
+
+Dawn Musgrave, NIHR RSS
+
+9. Project Management & Workplan
+Checklist
+☐ Project team roles defined; management plan described.
+☐ Work Packages (WPs) structured with deliverables and dependencies.
+☐ Project governance identified (e.g. Steering Board frequency, reporting).
+☐ Gantt chart attached (showing milestones and critical path).
+☐ Risk management and mitigation embedded in plan.
+
+What Good Looks Like
+•
+
+3–5 core work packages with SMART deliverables.
+
+•
+
+Transparent links between costs and activities.
+
+•
+
+Timelines feasible given NHS site capacity and approval times.
+
+•
+
+Contingency plan for delays in recruitment or data collection.
+
+Example Work Package Table
+WP
+
+Title
+
+1
+
+Technical Enhancement Finalise algorithm and prototype Code refinement, unit tests
+
+2
+
+Clinical Validation
+
+Feasibility study (3 sites)
+
+Ethics approval, data collection Feasibility report
+
+NHS Partner
+
+3
+
+Health Economics
+
+Cost model inputs
+
+Pathway mapping, data analysis Draft ICER model
+
+HEI
+
+4
+
+PPIE & Dissemination
+
+Workshops + communication
+
+Public events, report prep
+
+Dawn Musgrave, NIHR RSS
+
+Objectives
+
+Tasks
+
+Deliverables
+
+Lead
+
+Validated build
+
+SME
+
+Co-produced
+recommendations
+
+PPIE Lead
+
+Sample Gantt Layout
+Month
+
+1–3
+
+4–6
+
+WP1 Technical
+
+██ ██ ██
+
+██ ██
+
+WP2 Clinical Validation
+
+██ ██ ██
+
+WP3 Health Economics
+WP4 PPIE / Dissemination
+
+██
+
+7–9
+
+10–12
+
+13–18
+
+██ ██ ██
+
+██
+
+██
+
+██
+
+██ ██
+
+██ ██ ██
+
+██
+
+██ ██
+
+19–24
+
+25–30
+
+31–36
+
+██ ██
+
+██ ██
+
+██ ██
+
+Risk Register Summary
+Category
+
+Risk
+
+Impact
+
+Likelihood
+
+Score
+
+Mitigation
+
+Technical
+
+Algorithm fails in heterogeneous data
+
+High
+
+Medium
+
+6
+
+Iterative testing + backup model
+
+Regulatory
+
+Delay in ethics approval
+
+Medium
+
+Medium
+
+4
+
+Early IRAS submission
+
+Operational
+
+Patient recruitment slow
+
+High
+
+High
+
+9
+
+Engage 3 sites + recruitment support
+
+Financial
+
+Inflation pressure on supplies
+
+Medium
+
+Low
+
+2
+
+Cost buffer 10 %
+
+Dawn Musgrave, NIHR RSS
+
+10. Market & Impact Analysis
+Checklist
+☐ Market need quantified (incidence, burden, NHS costs).
+☐ TAM/SAM/SOM market sizing completed.
+☐ Competitor landscape with differentiation clear.
+☐ Adoption drivers and barriers identified.
+☐ Stakeholder input (NHS, patients, KOLs) summarised.
+
+Quick Equations
+Compound Annual Growth Rate (CAGR):
+((End/Start)1/n)−1((End/Start)1/n)−1
+Share of Market (SOM):
+SOM=SAM×Expected Penetration RateSOM=SAM×Expected Penetration Rate
+
+Example Market Sizing Table
+Metric
+
+Definition
+
+Formula
+
+Example
+
+TAM
+
+Total Addressable Market (global potential)
+
+–
+
+£10 B
+
+SAM
+
+Serviceable Available Market (UK target)
+
+–
+
+£2 B
+
+SOM
+
+Serviceable Obtainable Market
+
+SAM × 5 %
+
+£100 M
+
+CAGR
+
+Growth rate / year
+
+((150/100)^(1/5))-1
+
+8.45 %
+
+Dawn Musgrave, NIHR RSS
+
+Your Entry
+
+WGLL
+•
+
+Uses credible sources (ONS, WHO, NICE, market reports).
+
+•
+
+Demonstrates clinician and commissioner interest (e.g. Letters of Support).
+
+•
+
+Identifies clear route to NHS procurement (Frameworks, NHSE innovation pathway).
+
+Example Text
+“The UK addressable market for community respiratory monitoring is ≈ £450 M per year, with expected CAGR 7.8 %. Five competitors exist, but none
+offer integrated NICE pathway mapping or post-discharge telemonitoring.”
+
+Dawn Musgrave, NIHR RSS
+
+11. Finance Chapter
+This comprehensive chapter incorporates:
+•
+
+NIHR Finance Guidance
+
+•
+
+NIHR RMS Budget Validation Rules
+
+•
+
+NIHR Payment Guidance
+
+•
+
+NIHR Open Access Funding Policy
+
+11.1 NIHR Expectations for the Finance Section
+NIHR requires:
+•
+
+A realistic, accurate, current-price budget.
+
+•
+
+Full breakdown of costs by cost category and partner organisation.
+
+•
+
+Robust justification for every item (Value for Money).
+
+•
+
+RMS-based category structure and validation checks.
+
+•
+
+Finance team involvement at the outset.
+
+11.2 Required RMS Cost Categories
+These must be used exactly:
+•
+
+Staff Costs
+
+•
+
+Travel & Subsistence
+
+Dawn Musgrave, NIHR RSS
+
+•
+
+Equipment
+
+•
+
+Consumables
+
+•
+
+PPIE / PPIEP Costs
+
+•
+
+Dissemination
+
+•
+
+Other Direct Costs
+
+•
+
+Indirect Costs
+
+Each line must include justification and mapping to a Work Package.
+
+Dawn Musgrave, NIHR RSS
+
+11.3 Costing Rules by Organisation Type
+HEIs
+•
+
+Claim 80% FEC, including estates + indirect costs.
+
+NHS Providers
+•
+
+Claim up to 100% of direct costs.
+
+Commercial / Industry Partners
+•
+
+May claim indirect costs only with full justification.
+
+11.4 Allowable vs Non-Allowable Costs
+Allowable
+•
+
+Staff with increments.
+
+•
+
+Travel & subsistence (incl. oversight groups).
+
+•
+
+Conferences (≤2, strong justification).
+
+•
+
+Equipment ≤£5,000 (lease if >£5k).
+
+•
+
+Computers ≤£650 ex. VAT.
+
+•
+
+VAT only if non-reclaimable.
+
+Non-Allowable
+•
+
+Alcohol.
+
+•
+
+General office supplies.
+
+Dawn Musgrave, NIHR RSS
+
+11.5 PPIE Costing Requirements
+NIHR Payment Guidance Requirements
+You must:
+•
+
+Offer fair rates and transparent processes.
+
+•
+
+Ensure contributors are not financially worse off (welfare checks).
+
+•
+
+Provide advance expenses where possible.
+
+•
+
+Work with HR/Finance early.
+
+•
+
+Include PPIE support and coordination time.
+
+Reference Rates
+•
+
+Link
+
+£13.80 - For involvement in a task or activity such as reading and commenting on an abstract which equates to
+less than half an hour. For example, reviewing papers.
+£27.50 - For involvement in a task or activity requiring little or no preparation and which equates to
+approximately one hour of activity or less. For example, participating in a focus group to provide feedback on a
+proposal.
+£55 - For involvement in a task or activity likely to require some preparation and which equates to approximately
+two hours of activity. For example, a teleconference with related papers to read or review a few short documents.
+
+Dawn Musgrave, NIHR RSS
+
+£82.50 - For involvement in a task or activity where preparation is required and which equates to approximately
+half a day’s activity. For example, participating in a meeting to interview a small number of candidates who have
+applied to join a committee or panel, participating in a focus group, or delivering training.
+£165 - For involvement in all-day meetings. For example, attending a committee or panel meeting as an
+observer prior to becoming an active public member of a committee/panel.
+£330 - For involvement in all-day meetings that require substantial preparation. For example, when chairing or
+co-chairing a meeting or when carrying out other discretionary work, which requires additional responsibilities.
+
+11.6 Open Access Funding Requirements (NIHR OA Policy)
+OA costs must not be included in your project budget:
+•
+
+All OA APCs are funded through an Open Access envelope.
+
+•
+
+Eligible: APCs, transitional agreements.
+
+•
+
+Not eligible: page/colour charges, monographs, book chapters, non-OA fees.
+
+•
+
+Outputs must be published open access in Europe PMC immediately.
+
+Dawn Musgrave, NIHR RSS
+
+11.7 Value for Money Requirements
+Applicants must:
+•
+
+Demonstrate a clear public return (ROI).
+
+•
+
+Provide scenario modelling.
+
+•
+
+Align spend with WP milestones.
+
+11.8 Budget Template (RMS-Aligned)
+Category
+
+Item
+
+Staff Costs
+Travel & Subsistence
+Equipment
+Consumables
+PPIEP Costs
+Dissemination
+Other Direct Costs
+Indirect Costs
+Total
+
+Dawn Musgrave, NIHR RSS
+
+Cost (£)
+
+Organisation
+
+Justification
+
+Checklist
+☐ Budget total within scheme range (£150 k – £1 M).
+☐ Cost lines clearly mapped to WPs.
+☐ Partner % contributions identified.
+☐ Subcontractor selection justified.
+☐ Taxpayer value articulated (ROI/VfM).
+
+What Good Looks Like
+✓
+
+Transparent costing by partner and category.
+
+✓
+
+Clear explanation of why public funding is essential (additionality).
+
+✓
+
+Demonstrable economic and societal benefit > public investment.
+
+✓
+
+Consistency between budget table and VfM narrative.
+
+Budget Template
+Item
+Total Project Cost
+Grant Requested
+SME cash/in-kind
+Partner contributions
+Subcontractors
+
+Dawn Musgrave, NIHR RSS
+
+Amount (£)
+
+Notes
+
+Item
+
+Amount (£)
+
+Notes
+
+Dissemination / Travel
+Total Requested (≤ £1 M)
+
+Value for Money Equation
+VFM Ratio = Total Expected Benefits (£)Grant Requested (£)VFM Ratio = Grant Requested (£)Total Expected Benefits (£)
+Example:
+Expected NHS savings £2 M + economic impact £0.5 M + revenue £1 M = £3.5 M benefits ÷ £0.5 M grant = 7:1 return.
+
+Dawn Musgrave, NIHR RSS
+
+12. Reviewer Rubric & Final Checklists
+Assessment Criteria Overview
+All eligible i4i PDA applications are assessed against seven core criteria:
+Criterion
+
+Definition
+
+Score (0–5)
+
+WGLL Indicators
+
+1 Strategic Fit
+
+ARI-3 + NHS alignment
+
+5 = explicit workforce impact
+
+Strong translational link + clear health need
+
+2 Innovation + Evidence
+
+TRL + data credibility
+
+5 = robust data package
+
+Lab and pilot data validated
+
+3 Clinical Validation
+
+Design quality + feasibility
+
+5 = powered multi-site study
+
+Regulatory strategy ready
+
+4 Health Economics
+
+Economic modelling plan
+
+5 = clear ROI/ICER
+
+HEI partner involved
+
+5 PPIE + Inclusion
+
+Engagement breadth
+
+5 = embedded public involvement + budget lines Evidence of impact
+
+6 Feasibility + Project Mgmt Plan + risks
+
+5 = credible timeline
+
+Defined contingency plan
+
+7 Value for Money
+
+5 = lean budget
+
+7:1 ratio example
+
+Return on public investment
+
+Scoring Bands
+- 30–35 Outstanding / Very Likely to Be Funded
+- 25–29 Competitive / Strong Reserves List
+- 20–24 Fundable with Reservations
+- <20 Unlikely to Be Funded
+
+Dawn Musgrave, NIHR RSS
+
+Final Pre-Submission Checklist
+Item
+Eligibility (Lead & Partners confirmed)
+TRL ≥ 3 and evidence attached
+ARI-3 alignment text included
+PPIE plan + costs added
+Clinical validation design complete
+Health economics approach defined
+Timeline realistic + Gantt attached
+Budget justified (≤ £1 M)
+All appendices uploaded
+Plain English summary checked
+
+Dawn Musgrave, NIHR RSS
+
+Done (✓)
+
+Appendices
+A. Health Economics Worked Model
+Parameter
+
+Input
+
+Source
+
+Population
+
+1,000 patients
+
+NHS activity data
+
+Average saving per patient
+
+£550
+
+Pilot study
+
+Project cost
+
+£500 k
+
+Budget
+
+ROI
+
+((550 × 1,000)/500 k)= 1.1:1
+
+B. Risk Register Template
+(Expand with more rows for each WP.)
+ID
+
+Category
+
+Description
+
+L
+
+I
+
+Score
+
+Mitigation
+
+Owner
+
+R-01
+
+Technical
+
+Algorithm bias
+
+2
+
+3
+
+6
+
+Diverse dataset testing
+
+Data Lead
+
+R-02
+
+Regulatory
+
+CE-mark delay
+
+2
+
+2
+
+4
+
+Early engagement with MHRA
+
+QA Lead
+
+R-03
+
+Commercial
+
+Partner withdraws
+
+1
+
+3
+
+3
+
+Backup MoU
+
+PM
+
+R-04
+
+Ethical/Data
+
+Re-consent needed
+
+2
+
+2
+
+4
+
+Include in protocol
+
+PI
+
+Dawn Musgrave, NIHR RSS
+
+C. Gantt Chart Shell
+Month
+
+WP1
+
+1–3
+
+██
+
+4–6
+
+██
+
+WP2
+
+WP3
+
+WP4
+
+WP5
+
+██
+
+7–9
+
+██
+
+10–12
+
+██
+
+██
+
+…
+
+D. Value for Money (ROI) Formula
+ROI(%)=(Total Benefits−Grant)Grant× 100ROI(%)=Grant(Total Benefits−Grant)× 100
+Add scenario analyses (best, expected, worst).
+
+Dawn Musgrave, NIHR RSS
+
+E. Pre-Submission Summary
+1. Innovation summary complete.
+2. Public summary jargon checked.
+3. PPIE plan ✓
+4. Budget & workplan ✓
+5. All files cross-referenced ✓
+
+F. Useful Links
+- NIHR PDA Funding Portal
+- DHSC ARI Publication 2025
+- NIHR Industry Hub
+- NICE Early Value Assessment
+- NHS Innovation Service
+
+G. PPIE Resources
+•
+
+National Standards for Public Involvement - The UK Standards for Public Involvement in Research will help guide you to improve the quality
+and consistency of the public involvement in your research.
+
+•
+
+Guidance for researchers on PPIE - NIHR has developed guidance for researchers on how patients and the public can be involved.
+
+•
+
+Payment and recognition for PPI - NIHR also provide guidance on reward and payment for involvement.
+
+•
+
+Co-production - Also you can find NIHR guidance on co-producing a research project.
+
+•
+
+Community Engagement guidelines – helping researchers develop relationships with communities they wish to engage with NIHR
+Community Engagement Toolkit
+
+•
+
+PPIE Planner – a free online tool to help develop your PPI plans for your research PPIE Planner (plan4ppie.com)
+
+Dawn Musgrave, NIHR RSS
+
+H. EDI Resources
+•
+
+NIHR EDI toolkit EDI Toolkit (rdsresources.org.uk)
+
+•
+
+NIHR Research Inclusion Policy Research Inclusion
+
+•
+
+NIHR Sex & Gender Policy Sex & Gender
+
+Dawn Musgrave, NIHR RSS
+
+End Note
+NIHR i4i PDA Funding Playbook (2026 Edition)
+This guide
+aims to support SMEs and public partners to develop robust, inclusive and impactful applications that translate smart technologies into measurable
+health benefits.
+
+Dawn Musgrave, NIHR RSS
+
+
