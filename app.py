@@ -1,13 +1,10 @@
 """Streamlit entrypoint for the RSS/NIHR Funding Application Checklist Assistant."""
 from __future__ import annotations
 
-import json
-
-
 from application_facts import extract_application_facts
 from checklist_engine import build_checklist
 from document_loader import combine_pasted_and_uploaded
-from guidance_loader import add_runtime_guidance, build_baseline_requirement_bank
+from guidance_loader import build_baseline_requirement_bank, detects_pda_relevance
 from guidance_parser import parse_guidance_text
 from rag_dashboard import build_rag_dashboard
 from report_renderer import (
@@ -22,6 +19,7 @@ from settings import Settings
 from similarity.service import run_similarity_service
 
 APP_TITLE = "RSS/NIHR Funding Application Checklist Assistant"
+NO_SPECIFIC_CALL_GUIDANCE_MESSAGE = "No specific funding call guidance provided; review uses built-in NIHR domestic guidance and RSS PDA playbook guidance."
 
 
 def _runtime_guidance_from_inputs(pasted: str, uploads) -> str:
@@ -37,15 +35,14 @@ def main() -> None:
 
     settings = Settings.from_env()
     with st.sidebar:
-        st.header("Inputs")
+        st.header("The Application")
+        st.caption("Required. This is the actual applicant submission, not built-in guidance.")
         app_text = st.text_area("Paste application text", height=220, help="Required unless application files are uploaded.")
         app_uploads = st.file_uploader("Upload application/supporting documents", type=["docx", "pdf", "txt", "xlsx"], accept_multiple_files=True)
-        st.subheader("Optional specific funding call guidance")
-        call_text = st.text_area("Paste specific call guidance", height=130)
-        call_uploads = st.file_uploader("Upload specific call guidance", type=["docx", "pdf", "txt"], accept_multiple_files=True)
-        st.subheader("Optional general NIHR/RSS guidance")
-        general_text = st.text_area("Paste extra general guidance", height=100)
-        general_uploads = st.file_uploader("Upload extra general guidance", type=["docx", "pdf", "txt"], accept_multiple_files=True)
+        st.header("Optional Specific Funding Call Guidance")
+        st.caption("Optional but recommended when exact call page/opportunity guidance is available.")
+        call_text = st.text_area("Paste specific funding call guidance", height=130)
+        call_uploads = st.file_uploader("Upload specific funding call guidance", type=["docx", "pdf", "txt"], accept_multiple_files=True)
         st.subheader("Similarity settings")
         run_similarity = st.checkbox("Run similarity check", value=False)
         with st.expander("Advanced developer/testing options"):
@@ -65,11 +62,9 @@ def main() -> None:
 
     with st.spinner("Extracting application facts and building checklist..."):
         facts = extract_application_facts(application_docs)
-        baseline = build_baseline_requirement_bank(".")
-        extra_general = _runtime_guidance_from_inputs(general_text, general_uploads)
-        if extra_general.strip():
-            baseline.extend(add_runtime_guidance([("programme_guidance", extra_general)]))
         specific_text = _runtime_guidance_from_inputs(call_text, call_uploads)
+        include_pda = detects_pda_relevance(specific_text, facts.application_claimed_call, facts.product_or_intervention, facts.technology_type, facts.trl_evidence)
+        baseline = build_baseline_requirement_bank(".", include_pda_playbook=include_pda)
         specific_reqs = parse_guidance_text(specific_text, "specific_call", prefix="CALL") if specific_text.strip() else []
         for req in specific_reqs:
             req.overrides_general_guidance = True
@@ -95,6 +90,8 @@ def main() -> None:
     ])
 
     with tab_summary:
+        if not specific_reqs:
+            st.info(NO_SPECIFIC_CALL_GUIDANCE_MESSAGE)
         st.markdown(summary)
     with tab_checklist:
         st.dataframe(checklist_table_rows(checklist), use_container_width=True)

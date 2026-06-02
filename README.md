@@ -18,10 +18,9 @@ The repository `.txt` files are guidance/reference material, not example applica
 The checklist applies guidance in this order:
 
 1. Specific funding opportunity guidance supplied at runtime.
-2. Programme-specific guidance supplied or detected at runtime.
-3. Built-in NIHR domestic guidance from `nihr_domestic_guidance.txt`.
-4. Built-in RSS/i4i PDA playbook guidance from `rss_pda_playbook_notes.txt`.
-5. Derived RSS reviewer checks.
+2. Built-in NIHR domestic guidance from `nihr_domestic_guidance.txt`.
+3. Built-in RSS/i4i PDA playbook guidance from `rss_pda_playbook_notes.txt` where PDA/i4i/product-development relevance is detected.
+4. Derived RSS reviewer checks.
 
 Specific funding call requirements override built-in general guidance for the same checklist area.
 
@@ -46,10 +45,9 @@ In the sidebar:
 
 1. Paste or upload the actual funding application. This is required.
 2. Optionally paste or upload specific funding call guidance.
-3. Optionally paste or upload additional general NIHR/RSS guidance.
-4. Choose whether to run similarity checks. Similarity is off by default.
+3. Choose whether to run similarity checks. Similarity is off by default.
 
-Supported application uploads are `.docx`, `.pdf`, `.txt`, and `.xlsx`. Specific call/general guidance uploads support `.docx`, `.pdf`, and `.txt`.
+There is no manual upload input for NIHR domestic guidance or the RSS PDA playbook. Those repository files are loaded automatically as built-in baseline sources. Supported application uploads are `.docx`, `.pdf`, `.txt`, and `.xlsx`. Specific call guidance uploads support `.docx`, `.pdf`, and `.txt`.
 
 ## Outputs
 
@@ -96,4 +94,4 @@ Mock similarity mode is hidden under advanced developer/testing options and defa
 python -m pytest -q
 ```
 
-The tests cover prompt architecture, guidance loading, application fact extraction, checklist rules, RAG hard validations, similarity privacy gates, and report rendering.
+The tests cover prompt architecture, automatic built-in guidance loading, application fact extraction, checklist rules, RAG hard validations, similarity privacy gates, app input constraints, and report rendering.
