@@ -115,10 +115,8 @@ def build_rag_dashboard(items: list[ChecklistItem], facts: ApplicationFacts) -> 
             rag = "AMBER"; score = max(score, 2); warnings.append("Named PPI coordination prevents PPIE RED but needs payment/support and dedicated-lead confirmation.")
         if subsystem == "Patient and Public Involvement" and rag == "GREEN" and (not any(x in ppie_text for x in ["dedicated ppi lead", "named ppi lead"]) or not any(x in ppie_text for x in ["payment", "expenses", "support"])):
             rag = "AMBER"; warnings.append("No explicit dedicated/named PPI lead or payment/support prevents PPIE GREEN.")
-        if subsystem == "Clinical Validation" and rag == "GREEN" and not _has(facts.next_stage_plan):
-            rag = "AMBER"; warnings.append("No explicit next-stage plan prevents Clinical Validation GREEN.")
-        if subsystem == "Health Economics" and rag == "GREEN" and not ("perspective" in he_text and any(x in he_text for x in ["comparator", "usual care", "current care"]) and "cost" in he_text and "health economist" in he_text):
-            rag = "AMBER"; warnings.append("No health economist involvement or perspective/comparator/cost-outcome plan prevents Health Economics GREEN.")
+        if subsystem == "Health Economics" and rag == "GREEN" and not ("perspective" in he_text and any(x in he_text for x in ["comparator", "usual care", "current care"]) and "cost" in he_text):
+            rag = "AMBER"; warnings.append("No health economics perspective/comparator/cost-outcome plan prevents Health Economics GREEN.")
         if subsystem == "Project Management" and rag == "GREEN" and not ("gantt" in pm_text and bool(facts.milestones)):
             rag = "AMBER"; warnings.append("No Gantt/project management evidence prevents Project Management GREEN.")
         if rag == "GREEN" and score == 0:

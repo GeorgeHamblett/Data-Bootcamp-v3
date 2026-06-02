@@ -34,27 +34,13 @@ def _compress(value: object, kind: str = "generic") -> str:
     if kind == "need":
         import re
         bits = []
-        labels = [
-            (r"falls? prevention|falls? risk|risk of falling", "falls prevention"),
-            (r"balance", "balance"),
-            (r"mobility rehabilitation", "mobility rehabilitation"),
-            (r"confidence", "confidence"),
-            (r"independence", "independence"),
-            (r"\brehabilitation\b", "rehabilitation"),
-        ]
-        for pattern, label in labels:
-            if re.search(pattern, text, re.I) and label not in bits:
-                bits.append(label)
-        if "mobility rehabilitation" in bits and "rehabilitation" in bits:
-            bits.remove("rehabilitation")
+        for pattern in [r"falls? prevention", r"reduce risk of falling", r"balance(?: confidence)?", r"mobility rehabilitation", r"confidence", r"independence", r"rehabilitation"]:
+            if re.search(pattern, text, re.I):
+                val = re.search(pattern, text, re.I).group(0).lower()
+                if val not in bits:
+                    bits.append(val)
         if bits:
             return ", ".join(bits)
-    if kind == "setting":
-        import re
-        for pattern in [r"NHS community rehabilitation services?", r"community rehabilitation (?:services|teams|clinics)", r"primary care", r"secondary care", r"social care"]:
-            m = re.search(pattern, text, re.I)
-            if m:
-                return m.group(0)
     # Avoid rendering raw proposal sentences in summary clauses.
     if len(text.split()) > 18 or text.lower().startswith(("this project", "we will", "the project will")):
         text = text.split(".")[0]
@@ -92,7 +78,7 @@ def render_summary(facts: ApplicationFacts, dashboard: list[dict], priority_gaps
     population_bits = [
         ("The target population is", compressed_population),
         ("The clinical or care need is", compressed_need),
-        ("The setting is", _compress(facts.sites_or_setting, "setting")),
+        ("The setting is", _compress(facts.sites_or_setting)),
     ]
     population = ". ".join(f"{label} {value}" for label, value in _unique_phrases(population_bits) if value)
 
