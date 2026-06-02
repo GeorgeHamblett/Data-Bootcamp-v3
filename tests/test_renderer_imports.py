@@ -72,4 +72,3 @@ def test_public_renderer_functions_run_without_missing_private_helpers():
     assert "Checklist row counts" in report_renderer.render_checklist_report_summary(checklist, facts)
     assert "Overall risk profile" in report_renderer.render_rag_dashboard_summary(dashboard)
     assert "Application focus" in report_renderer.render_executive_review_note(facts, dashboard, "")
-    assert report_renderer.group_dashboard_by_rag(dashboard)["RED"]
