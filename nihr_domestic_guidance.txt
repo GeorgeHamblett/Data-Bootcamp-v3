@@ -1,0 +1,484 @@
+Use this domestic programmes funding guidance for full applications to help you prepare your application. This guidance lists all the fields that appear in the online application form, and explains what information you need to include in each one.
+
+The term full application refers to what used to be called one-stage and stage 2 applications.
+
+This guidance is for you if:
+
+you have been shortlisted after applying for an outline application funding opportunity, and asked to submit a full application. An outline application was previously called a stage 1 application
+you are applying for a funding opportunity which goes straight to a full application
+You should use this guidance if you are applying for a funding opportunity through the following programmes:
+
+Better Methods Better Research
+Efficacy and Mechanism Evaluation Programme
+Evidence Synthesis Programme
+Health and Social Care Delivery Research Programme
+Health Technology Assessment Programme
+Invention for Innovation Programme
+Policy Research Programme
+Programme Grants for Applied Research Programme
+Public Health Research Programme
+Research for Patient Benefit Programme
+Research Programme for Social Care
+There is separate application form guidance if you are applying for global health research funding, career development funding or infrastructure funding.
+
+Setting up your NIHR awards management system account
+All funding applications need to be submitted through our NIHR awards management system. If you do not already have an account, please visit the awards management system and follow the on-screen instructions.
+
+We recommend starting your application as soon as possible to ensure you have plenty of time to get all of your team members and organisations registered on the system, if they are not already. There are multiple steps involved in creating an account. Please contact the relevant programme team as soon as possible if you have any questions, so they can assist you before the submission deadline.
+
+When you first use the awards management system, you will need to complete our diversity monitoring questions before you can submit an application. If you next log in after 12 months, you will need to review and verify your responses. For more information about why we collect this data, see our diversity data FAQs.
+
+If you are applying for a full application funding opportunity following an outline application, fields will automatically pull through any information you previously supplied - where the fields are the same. You will be able to edit your answers where needed. If you are applying for a straight to full application funding opportunity, the guidance will be the same as our outline application guidance. We state this where relevant in this guidance.
+
+NIHR requirements
+When completing your funding application, please ensure you are aware of NIHR requirements around working with people and communities, research inclusion and knowledge mobilisation. We also encourage you to consider the environmental impact of your research in line with our climate, health and sustainability commitments.
+
+Use of artificial intelligence (AI)
+As per our AI use statement, you must acknowledge generative AI usage in the 'Acknowledgement and conflicts' section before you submit your application.
+
+About the application form
+When you start your application, you will see an overview of the funding opportunity. 
+
+The application form is divided into tabs. Please read everything carefully and complete all the mandatory sections. At the bottom of your screen there are 3 buttons: 'Save draft', 'Info still required' and 'Submit'. Regularly save your answers by clicking the ‘Save draft’ button. Use the ‘Info still required’ button to keep a check on which sections you still need to complete. Click on the 'Submit' button to submit your application. If there is any outstanding information, you will see a 'Submission failed' message with a list of the missing information.
+
+Please start your application early and allow plenty of time to complete it. All applications must be written in English. Check the character limit for each field and make sure you keep within the limits. The character count includes spaces and if you go over the character limit, your text will be cut off. Please also check the page limit for each upload because these are a large part of your application.
+
+Use this guidance, alongside the relevant funding opportunity information and programme page details if applicable, to help you answer the questions in our online application form. Please read all the guidance before starting your application. You can access on-screen instructions in the awards management system by clicking the (i) symbol.
+
+You might also find the following information helpful:
+
+our glossary for using if you come across any terms you are not sure of when reading our guidance
+our assessment criteria which we use when reviewing applications
+The section headings in this guidance correspond to the tabs in the awards management system.
+
+Summary information
+The ‘Summary information’ section asks some questions about you and your application.
+
+Contracting organisation
+The contracting organisation will be the contractor if your application is funded.
+
+You must check you have chosen the most appropriate organisation. The contracting organisation has overall responsibility for the successful completion of the programme of work detailed in your application and any financial administration of the award, where applicable, if your application is successful. Once a funding decision has been made, you will need to follow a formal approval process if you wish to request a change to the contracting organisation. 
+
+In the event you need to request that the contractor differs from the lead applicant’s contracting institution, the contractor is expected to fulfil the same role. The contractor must fulfil the following in the usual project timeframes:
+
+respond to annual financial reconciliation exercises
+provide the final financial reconciliation statement for the project
+provide ad-hoc requests for financial information during the lifetime of the project
+respond to any queries relating to intellectual property, commercialisation and benefit realisation
+If you have a research sponsor, they can also be the contracting organisation, or a collaborating partner. A sponsor is the organisation directly responsible for securing the arrangements to initiate, manage, and finance your project. They must follow the guidelines set out in the NHS’s UK policy framework for health and social care research. 
+
+You will need to add your contracting organisation to your application form. To add your proposed contracting organisation, click on the drop-down and start typing the name into the search box at the top. A maximum of 10 organisations appear in the list so you may need to refine your search until the option you want appears. If you can't find your organisation in the list, please check the way the organisation name is spelled.
+
+If the organisation you are looking for does not appear, the next question will ask if you found your contracting organisation. If you select ‘No’, you can request to ‘Add new contracting organisation’. Our systems team will need to approve and add the new organisation before you can submit your application. Please request this change as early as possible. We recommend you give us at least 2 weeks’ notice before the funding opportunity closing date.
+
+Before you apply, you must ask an authorised representative from the contracting organisation, for example head of department or head of school, to confirm that they will support your application.
+
+Please refer to the specific funding opportunity for any restrictions on contracting organisation.
+
+Contracting organisation department (100 characters)
+Please name the department within your contracting organisation that you will be based in for the duration of your research.
+
+Application title (100 characters)
+Your application title should clearly and concisely summarise your proposed research. Please write any abbreviations out in full.
+
+Start month and start year
+Use the drop-downs to select the month and year your project will start. The start date will be the first day of the month regardless of whether this is a working day or not. This is the first day of funded activity. 
+
+Be realistic about your possible start date. This should take account of the necessary contracting, and any staff recruitment needed ahead of starting. Please refer to the application timeline in the specific funding opportunity when setting a start date.
+
+Please refer to the specific funding opportunity for any restrictions on start date.
+
+Duration (months) 
+The duration is the period of time you will need to complete your research. Enter the number of months as whole numbers only - avoid fractions or decimal numbers.
+
+Make sure you allow enough time to complete all aspects of the research. This includes time for any necessary regulatory approvals and for writing a final report.
+
+Please see the funding opportunity for limits on duration.
+
+End date
+This is the date your proposed work will end. This field will automatically populate using information from the 'Start date' and 'Duration' fields once you click the ‘Save draft’ button.
+
+Total cost to NIHR
+This information will automatically be pulled through from the 'Budget' section. You do not need to do anything here but you will need to complete the 'Budget' section in the application form.
+
+Has this application been previously submitted to this or any other funding body?
+Please tell us if you have submitted your application previously to this or another NIHR funding opportunity, or another funder. Please select either the ‘Yes’ or ‘No’ option.
+
+If you fail to answer accurately or fully, this will be seen as academic misconduct and treated accordingly. 
+
+Re-submitting applications to NIHR
+We do allow applicants to re-submit a previously unsuccessful application but we encourage that you only re-apply if you have made changes. We encourage you to rework your previous application and respond to feedback. If you do re-apply, your application will be treated as a new application and considered on its merits at the time.
+
+If you have answered 'Yes', please provide:
+
+Grant reference
+Please tell us the grant reference number associated with your previous application.
+
+Funder
+Please list the name(s) of the funder(s) you have previously submitted this application to.
+
+Please provide details 
+Please tell us why your previous application was declined and how you have changed and improved it in response to feedback.
+
+Lead applicant and research team
+This section covers 2 tabs in the awards management system:
+
+'Lead applicant', which contains details on lead and joint lead applicants
+'Research team', which contains details on co-applicants and administrative contacts
+Information provided on all applicants in your outline application will automatically pull through to your full application.
+
+It is important that all applicants are registered in the system, and that their details are up to date. If any do not already have an account, please visit the awards management system and follow the on-screen instructions.
+
+Information on name, primary and other affiliated organisations, and contact details will be automatically populated from each applicant’s contact profile within the application system. To add in missing information, or make updates, click the ‘My profile’ button on the awards management system home page. Or click the ‘Update contact profile’ button in the relevant section(s) of your funding application.
+
+Please note that each applicant will need to validate their individual contact profile prior to your application submission. 
+
+Your research team will need to include a dedicated lead for PPI. These are a dedicated staff member with responsibility for the coordination and reporting of these activities in line with UK Standards for Public Involvement and relevant NIHR guidance and policies.
+
+Within this form, there are 3 types of applicant:
+
+Lead applicant
+The lead applicant is the person who takes overall responsibility for the design, conduct and reporting of a study.
+
+Joint lead applicant
+A Joint lead applicant is an individual who shares responsibility for leading the programme of work with the lead applicant. 
+
+They can be beneficial to:
+
+support the work of transdisciplinary teams
+enable capacity building
+support future leaders
+provide mentorship where the lead applicant is an early career researcher
+For application and contracting purposes, the joint lead applicant will be counted as a co-applicant.
+
+Co-applicants
+Co-applicants have responsibility for the day to day management and delivery of a project. They are part of the project team, and are expected to share responsibility for its successful delivery. This can include patients, carers, and service users. Co-applicants from collaborating organisations should also be included.
+
+Individuals or organisations that will provide expertise on specific areas, and do not share project delivery responsibility, do not need to be named as co-applicants. If necessary, you should instead mention them in the ‘Research plan’ section.
+
+Teams should be appropriately formed. Please ensure you refer to co-applicant limits in the relevant guidance for the funding opportunity you are applying for.
+
+Public co-applicants
+Where appropriate, we encourage the inclusion of public co-applicants to increase the breadth of experience, knowledge and skills within a research team. This includes the perspective of lived experience of the area being studied. A public co-applicant (such as a patient, carer, user of health and social services, someone from an organisation representing service users or someone with lived experience), will share responsibility for developing, managing and delivering the project with other members of the team.
+
+A public co-applicant is in addition to, not instead of, involving people and communities in your study. You are still expected to include people and communities in shaping and delivering your study and mobilising knowledge. See our public co-applicants in research guidance for more information. 
+
+Within the ‘Proposed role’ section below, please include:
+
+a clear description of the public co-applicant’s role
+the reasons why they are joining the team
+an outline of what and how they will be paid for their role
+How to add new applicants, or edit existing applicants
+Add and edit a joint lead applicant
+How to add a joint lead applicant
+Select 'Yes' within the ‘Joint lead applicant invitations’ section of the lead applicant tab.
+Use the envelope button to add a joint lead applicant. You can only add one joint lead applicant to your application.
+Click the plus icon (+) within the ‘Invitations’ pop-out.
+Fill in the name and email address of your joint lead applicant.
+Within the 'Role' section, select the level of access you want the joint lead applicant to have to your application. You can choose to give them editing rights, or read-only access. If you want your joint lead applicant to have access to all financial information within your application, select one of the ‘with financials’ options.
+Click the ‘Invite’ option to email an invitation to your joint lead applicant. If you are not yet ready to send an invitation, you can select ‘Save’ instead.
+Once the joint lead applicant has accepted their invitation they will appear in the ‘Research team’ table.
+
+How to edit a joint lead applicant
+Once a joint lead applicant has accepted their invitation, they will appear in the 'Joint lead applicant details’ table.
+
+To add information regarding the joint lead applicant’s role, click on the relevant row of the table to open the applicant detail form.
+
+Within this form, you will be able to add details about the joint lead applicant's role, %FTE, organisation and department. More information about how to complete these can be found below.
+
+Some details will pull through from the joint lead applicant's contact profile. If any details in these sections are incorrect, please ask the joint lead applicant to update their contact details as outlined below.
+
+Within the applicant detail form, you will also be able to remove the applicant from your application, or resend their invitation to join the application, if needed.
+
+Add and edit co-applicants
+How to add co-applicants
+Within the ‘Co-applicants invitations’ section of the ‘Research team’ tab, use the envelope button to add a new co-applicant. This will open the co-applicants table in a new window.
+Click the plus icon (+) within the ‘Invitations’ pop-out.
+Fill in the name and email address of your co-applicant.
+Within the ‘Role’ section, select the co-applicant type and the level of access you want them to have to your application.
+If you are adding a public co-applicant, select one of the ‘co-applicant PPI/CEI’ options from the drop-down. Otherwise, select ‘co-applicant’.
+For each co-applicant type, you can choose to grant editing rights, or read-only access. If you want your co-applicant to have access to all financial information within your application, select one of the ‘with financials’ options.
+Continue to add co-applicants following the instructions above. You do not need to complete all co-applicant details at the same time.
+Once you have entered co-applicant details, click the ‘Invite’ option to email an invitation to all of your co-applicants. If you are not yet ready to send an invitation, you can select ‘Save’ instead.
+Teams should be appropriately formed. Please ensure you refer to co-applicant limits in the relevant guidance for the funding opportunity you are applying for. You should consult with co-applicants before adding them to the application.
+
+How to edit co-applicants
+Once a co-applicant has been added to your application, they will appear in the ‘Research team’ table at the bottom of the 'Research team' tab. If you need to update a co-applicant’s details, click the relevant row in this table to open up the applicant detail form.
+
+Within the applicant detail form, you will also be able to remove the applicant from your application if needed.
+
+For all applicant types, you are required to provide:
+Title, first name and surname
+These sections of the form will be pre-populated based on the applicant’s contact profile in the application system. If you need to change any details, click the ‘Update contact profile’ button to edit your profile. Please note that each applicant will need to update their own contact profile.
+
+Organisation
+The organisation from your contact profile will appear here by default. If you need to change your organisation, click on the ‘Update contact profile’ button at the top of this section. 
+
+If needed, you can add a new organisation to your account by:
+
+clicking the 'Update contact profile' button
+selecting 'Affiliated organisation' in the left-hand selection bar
+clicking ‘Add new organisation’
+filling out the details of your organisation and pressing ‘Submit’
+Department
+This section will be pre-populated based on the applicant’s contact profile. If you need to change any details, click the ‘Update contact profile’ button to edit your profile. Please note that each applicant will need to update their own contact profile.
+
+Proposed role (300 characters)
+Briefly explain the applicant’s role in the research. For example coordination, project management, analysis, methodological input. For the lead applicant, this should be what they will do in addition to leading the project.
+
+There are several appropriate roles you may wish to include when designing your team. If the applicant is the PPI lead, please specify this here. You must include a PPI lead in your team. See our definition and role of the designated PPI lead guidance for more information.
+
+In the event that the public co-applicant and PPI lead roles will be fulfilled by the same person, you should make this clear and justify the duties and dedicated hours for each role.
+
+If you have a dedicated knowledge mobilisation lead, please mention this. See our knowledge mobilisation guidance for more information. 
+
+You can go into more detail about roles and responsibilities in the ‘Research plan’ section of your application.
+
+ORCID
+In order to submit an application, all applicants are required to provide an ORCID. This is a free, unique, user identification number used by NIHR and other health research funders.
+
+To obtain an ORCID, or add an existing one to your user contact profile:
+
+Click on the ‘Home’ button in the right-hand corner of the page and then go to the 'My Profile' tab.
+Add your existing ORCID or register for an ORCID account by clicking on ‘Create or connect your ORCID’. This will redirect you to the ORCID website.
+Sign in to ORCID, or register for an ID number.
+Within the ORCID system, click on the ‘Continue to import your ORCID Data’ button. This will update your contact profile in our application system with your ORCID number. 
+Please ensure that your ORCID profile is complete and up to date. It will be used as your CV by the NIHR and by the assessors of your application when considering your employment, previous experience and qualifications. We may also use your ORCID profile to confirm your eligibility for the funding opportunity.
+
+Use these sections within your ORCID profile to record and display this information:
+
+'Employment'
+'Education and qualifications'
+Your ORCID profile will also be used by the reviewers of your application as the source for your publication record. If you have any research outputs that you want the assessors of your application to be aware of, you must add them to your ORCID profile.  
+
+Please set the visibility of your ORCID account to ‘everyone’. This will allow NIHR and reviewers to access the information.
+
+Adding your ORCID to your application will make the information on your profile accessible to us and our reviewers via its URL. It will not import the information on your ORCID profile into your application form. 
+
+You can update and add to your ORCID profile after you have submitted your application, but do not remove any elements that might be of use to NIHR or the assessors of your application until the outcome of your application has been confirmed. We cannot guarantee that the reviewers of your application will see additions that you make after your application has been submitted. Reviewers will only see the information that you have included at the point at which they access the URL.
+
+%FTE commitment
+This refers to the percentage of time that each applicant will commit to this project. If they are funded as part of other, concurrent, NIHR projects, their time must not exceed 100% overall.
+
+Status
+Joint lead applicants and co-applicants are required to be invited and accept their participation in this application. You must also complete applicant details for all applicants before you can submit your application. 
+
+Once an applicant has accepted their invitation to join the application, you can complete their applicant details form by clicking on the corresponding row of the applicant details table. Fill in all details, as outlined above, and click the ‘Submit’ button to change the applicant’s status from pending to submitted.
+
+If you are not ready to submit an applicant’s details, you can click the ‘Save’ button instead.
+
+Additional partners and/or collaborators
+We are interested in hearing about any other partners or collaborators who are supporting your project. Use the drop-down to search for and add an additional partner or collaborator. If you are unable to find an organisation, please use the ‘Add new organisation’ button to register the organisation. Once you have added the new organisation, you will be able to select it from the list of organisation names.
+
+Add administrative contact
+You might want to add an administrative contact(s) to your online application. They can help complete the application but will not be able to submit the application. Administrative contacts do not need to be a co-applicant. 
+
+The lead applicant must submit the application, and will be the person that receives all automatically-generated emails from the system.
+
+To add an administrative contact:
+
+Click on the envelope icon within the 'Administrative information' section of the ‘Research team’ tab.
+Click the plus icon (+) within the 'Invitations' pop-out.
+Fill in the name and email address of your administrative contact.
+Within the ‘Role’ section, select the level of access you want the administrative contact to have to your application. You can choose to give them editing rights, or read-only access. If you want your administrative contact to have access to all financial information within your application, select one of the ‘with financials’ options.
+Once you have filled in all the details, click the ‘Invite’ button at the bottom of the screen. Your administrative contact will then receive an invite to access the application. If you are not ready to send an invitation, you can click ‘Save’ instead.
+Please note that the administrative contact must accept their participation in the application before it can be submitted.
+
+
+Application details
+This information relates to the ‘Application details’ tab in the application system.
+
+Scientific abstract (3,500 characters)
+The scientific abstract should be a clear and concise summary of your detailed research plan. You can complete the detailed research plan in the ‘Uploads’ section of this application. 
+
+You might want to include the following elements and headings in your scientific abstract:
+
+research question
+background
+aims and objectives
+methods
+timelines for delivery
+knowledge mobilisation, dissemination and impact
+research inclusion
+What you include may depend on the design of your research, the setting and the programme you are applying to. It might also depend on whether your research is primary research or evidence synthesis. You will need to decide which elements to include and there may be others not mentioned here. You might find the guidance on the EQUATOR Network website useful.
+
+Plain English summary (3,500 characters)
+If you are applying for a full application, please update your summary based on feedback you received in your outline application.
+
+You will need to write a clear and easy-to-read summary about your proposed research. This is different from a scientific abstract. Please do not copy and paste sections from your scientific abstract or detailed research plan.
+
+Your plain English summary will be read by people reviewing your application who may not have specialist knowledge of your research field. If your application is successful, your summary will be used on NIHR and other websites. If we feel your summary is not clear enough, we may ask you to amend it before we approve funding.
+
+Please see our guidance on how to write a plain English summary
+
+Changes from previous stage (6,000 characters)
+If you are applying straight to a full application funding opportunity, please type ‘N/A’ into the text box.
+
+If you are submitting a full application proposal following an outline application, please list the feedback you received from your outline application. Under each point, indicate what has changed as a result. Please describe and explain any additional changes that you have made to this proposal since your outline application, for example, in light of new research. 
+
+Working with people and communities summary (3,500 characters)
+Please summarise how you will ensure the different stages of your research lifecycle are directly shaped and influenced by the lived experience of diverse people and communities who will be affected by it. Any information on patient and public involvement should be summarised here. Full information about what NIHR is looking for in this section can be found in our guidance on working with people and communities, alongside further resources.
+
+You will need to signpost here to sections of your detailed research plan where you describe how you will work with people and communities in more detail. 
+
+Detailed research plan
+The detailed research plan is the main part of your application. You should ensure that the information you include is accurate, succinct, clearly laid out and provides sufficient methodological detail.
+
+Please download the template detailed research plan from within the awards management system. There are 6 sections within this template, which must all be completed. Section headings and margins should not be amended in any way.
+
+An outline of what to include in each section is below. For detailed guidance on the requirements of the funding programme you are applying to, including suggested character limits for each section, please refer to the information on the specific funding opportunity page.
+
+If necessary to clarify your research you may embed:
+
+schematics
+tables
+illustrations
+graphs
+other types of graphics
+Please ensure that your detailed research plan uses Arial size 12 font and no smaller, and shows page numbers within the document footer. Once you have completed the detailed research plan template offline, please convert it into a PDF before uploading into the system to ensure formatting is consistent. Please do not delete the PDF version that the system creates and adds to your application, unless you wish to remove or replace your detailed research plan entirely and re-upload it.
+
+Background and rationale
+Describe the background and rationale for the proposed research. You should include:
+
+a description of how your project addresses the aims of the funding opportunity
+an explanation of the health or social care problem being addressed and how the project responds to gaps in knowledge and addresses inequalities or the needs of under-served populations, or both
+where appropriate, an explanation of why your research is important, the need for it, and the impact it could have. Please consider the impact the research could have on those most affected. For example members of the public and communities; practitioners; service planners and decision makers; workforce and policy makers and others
+information on how the existing literature or evidence base, or both, supports your application, and how it fills an evidence gap. We will only fund primary research where the proposed research is informed by a review of the existing evidence
+Aims and objectives
+Summarise the questions and key aims and objectives of your project. These should map to the intended outcomes and impact of your research as described in your detailed research plan.
+
+Methodology/plan
+The methodology or plan is where you describe your proposed design and methodology in detail. 
+
+You will need to include details about: 
+
+1. Project design and methods
+2. Timeline and milestones
+In your methodology or plan you will also need to include the following information:
+
+3. Working in partnership with those affected by your research
+Describe your plans for ensuring that the different stages of your research or award lifecycle are directly shaped and influenced by the relevant experiences and needs of those who will be affected by it.
+
+Those affected by research include:
+
+people and communities (working with people and communities is a requirement of NIHR funding)
+members of the health and care workforce, service planners and decision makers, policy makers or others 
+Your response should address:
+
+who has shaped this proposal so far, why and how
+who will be involved throughout the research/award lifecycle, why and how
+Your plans should be appropriate for the research area and type, and proportionate to your proposed budget and resources.
+
+Please check the individual funding opportunity for any specific requirements for working with people and communities.
+
+Any information on patient and public involvement should be included here. Please see our guidance for working with people and communities for more information.
+
+4. Your research team
+Tell us about your research team and explain why the team is well suited to do the work. The team should be multidisciplinary and include relevant expertise. This is not limited to co-applicants.
+
+5. Inclusive research
+You must detail how you have considered inclusive research design and sex and gender throughout the whole research lifecycle.
+
+This includes, but is not limited to:
+
+your research design
+the participants you recruit and how you have considered diverse, under-served populations, health inequalities and exclusion criteria
+research methods
+data collection and statistical analysis
+knowledge mobilisation and dissemination of findings
+See our inclusive research funding application guidance for more information about what to include in your application.
+
+You should fully cost the inclusive research design and sex and gender elements of your application. Provide information and justify costs associated with inclusive design and sex and gender elements in the finance section of the application form.
+
+Knowledge mobilisation, dissemination and impact
+Explain your plan for knowledge mobilisation, dissemination and impact. You will need to show how you will reach and actively mobilise knowledge with your key stakeholders and knowledge users throughout the research cycle. Explain your anticipated knowledge mobilisation activities for achieving your intended outcomes and impact. Please include the following in your explanation:
+
+The intended outcomes and impact of your research.
+
+Who the key stakeholders and knowledge users are.
+
+How you will achieve intended outcomes and impact.
+You are encouraged to provide a schematic diagram outlining the logic underpinning how your research will achieve the intended research outcomes and impact. Please refer to the funding opportunity guidance and the relevant funding programme theory of change or logic model where this is available. Give an account of how the knowledge mobilisation activities will strengthen and facilitate the impact pathway. 
+
+The evidence you will gather to demonstrate the extent to which your research and knowledge mobilisation activities have achieved their intended outcomes and impact.
+
+See our plan knowledge mobilisation page for further guidance.
+
+Project management
+You will need to include details of how your project will be managed. Effective project management is essential, particularly if your project involves a number of institutions or component parts. This will ensure the work is completed within the planned timeframe.
+
+Intellectual property and commercialisation
+Intellectual property (IP) is an important tool to deliver benefits to patients and communities. It can take a wide range of forms, including patents, trademarks, designs and copyright. Copyright can include outputs such as databases, software, checklists, protocols and manuscripts. IP can include know-how arising from the research, or trade secrets, for example in research tools like data analysis techniques, cell lines and biomarkers. 
+
+You will be asked to provide information on IP and commercialisation in your full application.
+
+This will normally include details of the following: 
+
+IP created before your application and potential future IP resulting from your project. This should include who owns the pre-existing IP. You should also detail whether any patent applications have been made or patents granted relating to the proposed work.
+Any third-party IP licensing involved. This could be arising from an existing licence or one that is required to undertake the project.
+Future IP management including capturing, managing, and using the resulting IP from your project. This includes the possibilities of IP and commercial use.
+Commercial partners, their roles and expected use from the research outputs.
+Please also consider including the following information if applicable:
+
+The results of Freedom to Operate (FTO) checks. This includes any searches with details of who carried them out.
+The market competitiveness of your proposed technology, and how it compares to existing products. This should also include its innovation level and competitive advantages.
+How you will ensure your outputs are used in healthcare or social care. Include how you will overcome any barriers and meet regulations. You should also include requesting formal evaluation from national policy bodies, such as the National Institute for Health and Care Excellence (NICE).
+The impact of your product on health and social care.
+The novelty of your output, dissemination or strategies regarding market entry anticipated reach.
+IP applies to all NIHR funded research. For more information about IP, see our IP and commercialisation guidance.
+
+
+Budget section
+This information relates to the 'Budget' tab in the application system.
+
+In the 'Budget' section you will need to give high-level details of your expected costs. This should include an indication of the expected NHS or non-NHS support and treatment costs, if applicable. You may wish to refer to the attributing the costs of health and social care research (AcoRD) gov.uk page for guidance on how to allocate the costs correctly between categories. Please see our finance guidance for more information.
+
+Budget
+Please click on the ‘Open’ button to complete the budget in the pop-out. This is where you will need to give an overview of the costs associated with undertaking your research. This should relate to the activities you described in your proposal. 
+
+You should add costs to your application at current rates. This should take into account any scheme-specific rates or caps. Please adjust for the type of organisation incurring the cost to reflect the amount we will fund. For detailed instructions, please refer to the specific finance guidance that is relevant to your application. Our finance guidance and the relevant funding opportunity page includes information on eligible costs and funding rates. If you are successful in obtaining funding, you will be asked for full budget details at a later stage. Once you have added your costs overview, click ‘Save’ before returning to the ‘Budget’ screen.
+
+Justification of costs (5,000 characters)
+Please describe the type of costs you are requesting and why. Give as much detail as possible about how you have arrived at particular category costs.
+
+Schedule of events cost attribution tool (SoECAT) (if applicable)
+A SoECAT will be required if the planned intervention or research activity will have a direct impact on participant care during the active phase of the award. Please upload the SoECAT funder export after it has been signed off by the AcoRD specialist. If you are unsure whether a SoECAT is needed, please refer to the guidance for the funding opportunity you are applying for, and see our finance guidance for further information.
+
+
+Uploads
+This information relates to the ‘Uploads’ tab in the application system.
+
+Please refer to the funding opportunity for information on what uploads you should provide as part of your application. You should only include uploads specified in the guidance for the funding opportunity you are applying for. Any additional documents will not be considered by the committee during its review and may be removed.
+
+You should upload your documents into the awards management system once you have completed them. To do this, you can drag and drop documents, or click ‘browse files’ to locate them on your device.
+
+Only the following document types can be uploaded: .doc, .docx, .xlsx and .pdf.
+
+Please convert all document types to PDF format before uploading into the system, to ensure formatting is consistent. If you upload a Word document (.doc or .docx), the system will create a PDF version of it which may display formatting differently. Both the Word document and system PDF will appear in the ‘Uploads’ section. Please do not delete the PDF versions that the system creates and adds to your application, unless you wish to remove or replace any of your uploads entirely, in which case you will need to delete both versions.
+
+Flow diagram (if specified)
+Please refer to the specific funding opportunity for guidance to determine whether this upload is required as part of your application.
+
+Logic model (if specified)
+Please refer to the specific funding opportunity for guidance to determine whether this upload is required as part of your application.
+
+Gantt chart or project management plan (mandatory)
+Please attach a Gantt chart indicating a schedule for the completion of work, including the timing of key milestones and deliverables.
+
+References (mandatory)
+Upload a maximum of 3 single-side A4 pages in a PDF document, using Arial size 12 font, listing references used throughout your application. Please include the digital object identifier (DOI) of the main related publications. Please use the Harvard or Vancouver referencing style.
+
+Flexible upload (if specified)
+Please refer to the specific funding opportunity for guidance on whether any additional uploads are required as part of your application. You should not include information that has not been specifically requested.
+
+Acknowledgement and conflicts
+This information relates to the ‘Acknowledgement & conflicts’ tab in the application system. This is where you need to declare any potential conflicts and confirm you have read our terms and conditions.
+
+Potential conflicts
+Please declare any conflicts or potential conflicts of interest that you may have in undertaking the work as described. This includes any relevant, non-personal and commercial interest that could be perceived as a conflict of interest. If in doubt, you should err on the side of disclosure.
+
+I have read and understood the terms of applying as lead applicant and accept this role
+As lead applicant, please tick the box to confirm that the information entered into the application form is correct and that you take responsibility for overall management and delivery of the work described.
+
+Has generative artificial intelligence (AI) been used in the creation of this application?
+As lead applicant, please select 'Yes' or 'No'. We will not share your response with committee members or external reviewers.
