@@ -138,9 +138,9 @@ def test_nvidia_samd_edge_ai_patent_is_adjacent_not_direct_wound_match():
 
     assert scored["risk"] == "NONE"
     assert scored["risk"] not in {"LOW", "MEDIUM", "HIGH", "VERY_HIGH"}
-    assert scored["similarity_type"] == "infrastructure_only_no_wound_overlap"
+    assert scored["similarity_type"] == "infrastructure_only_no_specific_overlap"
     assert not any("wound" in concept.lower() for concept in scored["specific_matched_concepts"])
-    assert "generic SaMD or AI infrastructure" in scored["why_relevant"]
+    assert "generic infrastructure/platform" in scored["why_relevant"]
 
 
 def test_generic_samd_overlap_alone_cannot_score_high():
@@ -213,9 +213,9 @@ def test_similarity_service_keeps_epo_live_but_scores_samd_infrastructure_as_adj
 
     assert epo["status"] == "success"
     assert epo["risk"] == "NONE"
-    assert epo["similarity_type"] == "infrastructure_only_no_wound_overlap"
+    assert epo["similarity_type"] == "infrastructure_only_no_specific_overlap"
     assert epo["specific_matched_concepts"] == []
-    assert "not a direct wound-imaging" in epo["why_relevant"]
+    assert "generic infrastructure/platform" in epo["why_relevant"]
 
 
 def test_identifier_extraction_and_validation_preserves_public_anchors():
@@ -319,3 +319,61 @@ def test_new_generic_evaluation_terms_are_excluded():
     joined = " ".join(q.primary_terms + q.secondary_terms).lower()
     assert "endpoint" not in joined
     assert "12-month decision model" not in joined
+
+
+def test_domain_agnostic_stepright_extraction_expected_terms():
+    text = "StepRight MQAE Motion Quality Assessment Engine wearable digital therapeutic fall prevention mobility rehabilitation movement quality assessment wearable sensors Hidden Markov Models deep convolutional neural network classifier"
+    q = build_similarity_query(ApplicationFacts(project_title=text, product_or_intervention=text, technology_type=text, clinical_or_social_care_need=text))
+    joined = " ".join(q.primary_terms + q.secondary_terms).lower()
+    for expected in [
+        "stepright", "mqae", "motion quality assessment engine", "wearable digital therapeutic",
+        "movement quality assessment", "hidden markov models",
+        "deep convolutional neural network classifier", "fall prevention", "mobility rehabilitation",
+    ]:
+        assert expected in joined
+
+
+def test_domain_agnostic_noise_exclusion():
+    text = "Knowledge Knowledge mobilisation their risk of falling health economics budget aims methodology"
+    q = build_similarity_query(ApplicationFacts(project_title=text, product_or_intervention=text, clinical_or_social_care_need=text))
+    assert q.primary_terms + q.secondary_terms == []
+
+
+def test_epo_domain_agnostic_routing_and_weak_skip():
+    from similarity.service import _api_terms, _epo_has_run_basis
+    strong = build_similarity_query(ApplicationFacts(product_or_intervention="StepRight MQAE", technology_type="wearable digital therapeutic movement quality assessment wearable sensors", clinical_or_social_care_need="fall prevention mobility rehabilitation"))
+    epo_terms = _api_terms("EPO OPS", strong.primary_terms, strong.secondary_terms)
+    assert _epo_has_run_basis(epo_terms)
+    assert "wound" not in " ".join(epo_terms).lower()
+
+    weak = build_similarity_query(ApplicationFacts(target_population="older adults", clinical_or_social_care_need="fall risk", sites_or_setting="NHS community rehabilitation", health_economics_plan="health economics"))
+    weak_terms = _api_terms("EPO OPS", weak.primary_terms, weak.secondary_terms)
+    assert not _epo_has_run_basis(weak_terms)
+
+
+def test_non_ai_service_intervention_query_terms():
+    text = "HomeFirst discharge coordination pathway personalised care planning social worker-led transitional support delayed discharge older adults budget project management knowledge mobilisation"
+    q = build_similarity_query(ApplicationFacts(project_title=text, product_or_intervention=text, clinical_or_social_care_need=text, target_population="older adults"))
+    joined = " ".join(q.primary_terms + q.secondary_terms).lower()
+    for expected in ["homefirst", "discharge coordination pathway", "personalised care planning", "social worker-led transitional support"]:
+        assert expected in joined
+    for excluded in ["older adults", "budget", "project management", "knowledge mobilisation"]:
+        assert excluded not in joined
+
+
+def test_diagnostic_assay_query_terms():
+    text = "RapidSepsis multiplex biomarker panel point-of-care test sepsis triage emergency department lactate procalcitonin CRP"
+    q = build_similarity_query(ApplicationFacts(project_title=text, product_or_intervention=text, technology_type=text, clinical_or_social_care_need=text))
+    joined = " ".join(q.primary_terms + q.secondary_terms).lower()
+    for expected in ["rapidsepsis", "multiplex biomarker panel", "point-of-care test", "sepsis triage"]:
+        assert expected in joined
+
+
+def test_generic_document_scoring_none_and_exact_identifiers_very_high():
+    generic = score_result(["knowledge mobilisation", "health economics", "budget"], "knowledge mobilisation plan and budget", "")
+    assert generic["risk"] == "NONE"
+
+    nihr = score_result(["AI_AWARD01723"], "Award", "AI-AWARD01723")
+    patent = score_result(["US20210201479A1"], "Patent", "US20210201479A1")
+    assert nihr["risk"] == "VERY_HIGH"
+    assert patent["risk"] == "VERY_HIGH"

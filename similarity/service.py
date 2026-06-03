@@ -6,8 +6,8 @@ from typing import Any
 
 from schemas import ApplicationFacts
 from settings import Settings
-from similarity.query_builder import build_similarity_query, normalise, is_generic_term
-from typing import Any
+from similarity.query_builder import build_similarity_query, normalise, is_generic_term, concept_class
+from similarity.identifiers import is_patent_identifier as _id_is_patent_identifier, is_nihr_identifier as _id_is_nihr_identifier, is_trial_identifier as _id_is_trial_identifier, is_any_identifier
 
 from similarity.scoring import score_result
 from similarity.concepts import metadata_text
@@ -42,44 +42,42 @@ EPO_BLOCKED_TERMS = {
 
 
 def _is_public_identifier(term: str) -> bool:
-    return bool(re.search(r"\b(?:US|EP|WO)\s?\d{6,}[A-Z0-9]*\b|\bAI[_\-\s]?AWARD\d{3,}\b|\bNIHR\d{4,}\b", term, re.I))
+    return is_any_identifier(term)
 
 
 def _is_patent_identifier(term: str) -> bool:
-    return bool(re.search(r"\b(?:US|EP|WO)\s?\d{6,}[A-Z0-9]*\b", term, re.I))
+    return _id_is_patent_identifier(term)
 
 
 def _is_nihr_identifier(term: str) -> bool:
-    return bool(re.search(r"\bAI[_\-\s]?AWARD\d{3,}\b|\bNIHR\d{4,}\b", term, re.I))
-
-
-def _is_wound_specific_epo_term(term: str) -> bool:
-    key = normalise(term)
-    return any(x in key for x in [
-        "woubot",
-        "wound",
-        "ulcer",
-        "diabetic foot",
-        "venous leg",
-        "healing prediction",
-        "image segmentation",
-        "wound pixels",
-        "non-wound pixels",
-        "personalised wound care",
-        "personalized wound care",
-        "wound care recommendation",
-        "wound assessment",
-        "wound deterioration",
-    ])
+    return _id_is_nihr_identifier(term)
 
 
 def _ordered_terms_for_source(source: str, primary: list[str], secondary: list[str]) -> list[str]:
-    pool = primary if source == "EPO OPS" else primary + secondary
+    pool = primary + secondary
     if source == "EPO OPS":
-        return sorted(pool, key=lambda term: (0 if _is_patent_identifier(term) else 1))
+        allowed = {"exact_identifier", "named_entities", "technical_method_or_mechanism", "product_or_intervention_function", "intervention_type"}
+        return sorted(
+            [t for t in pool if (_id_is_patent_identifier(t) or (not _id_is_nihr_identifier(t) and not _id_is_trial_identifier(t) and concept_class(t) in allowed))],
+            key=lambda term: (0 if _id_is_patent_identifier(term) else 1 if concept_class(term) == "named_entities" else 2, normalise(term)),
+        )
     if source == "NIHR Open Data":
-        return sorted(pool, key=lambda term: (0 if _is_nihr_identifier(term) else 1 if _is_public_identifier(term) else 2))
-    return pool
+        allowed = {"exact_identifier", "named_entities", "intervention_type", "product_or_intervention_function", "clinical_or_social_care_problem"}
+        return sorted(
+            [t for t in pool if (_id_is_nihr_identifier(t) or (not _id_is_patent_identifier(t) and concept_class(t) in allowed))],
+            key=lambda term: (0 if _id_is_nihr_identifier(term) else 1 if concept_class(term) == "named_entities" else 2, normalise(term)),
+        )
+    allowed = {"named_entities", "intervention_type", "technical_method_or_mechanism", "product_or_intervention_function", "clinical_or_social_care_problem", "exact_identifier"}
+    return [t for t in pool if (_id_is_trial_identifier(t) or not _id_is_patent_identifier(t)) and concept_class(t) in allowed]
+
+
+def _epo_has_run_basis(terms: list[str]) -> bool:
+    if any(_id_is_patent_identifier(term) for term in terms):
+        return True
+    classes = [concept_class(term) for term in terms]
+    has_named = "named_entities" in classes
+    strong = sum(1 for cls in classes if cls in {"technical_method_or_mechanism", "product_or_intervention_function", "intervention_type"})
+    return (has_named and strong >= 1) or strong >= 2
 
 
 def _not_run(source: str, reason: str, terms: list[str]) -> dict:
@@ -99,13 +97,20 @@ def _api_terms(source: str, primary: list[str], secondary: list[str]) -> list[st
     picked: list[str] = []
     for term in _ordered_terms_for_source(source, primary, secondary):
         key = normalise(term)
-        if source == "EPO OPS":
-            if key in EPO_BLOCKED_TERMS or any(x in key for x in ["eq-5d", "berg", "timed up", "outcome", "recruitment", "retention", "usual care"]):
-                continue
-            if not _is_patent_identifier(term) and not _is_wound_specific_epo_term(term):
-                continue
+        cls = concept_class(term)
         if is_generic_term(term) and not _is_public_identifier(term):
             continue
+        if source == "EPO OPS":
+            if key in EPO_BLOCKED_TERMS or cls in {"generic_document_terms", "population_setting", "clinical_or_social_care_problem"}:
+                continue
+            if _id_is_nihr_identifier(term) or _id_is_trial_identifier(term):
+                continue
+        elif source == "NIHR Open Data":
+            if _id_is_patent_identifier(term) or cls in {"generic_document_terms", "population_setting", "technical_method_or_mechanism"}:
+                continue
+        else:
+            if cls in {"generic_document_terms", "population_setting"} or _id_is_patent_identifier(term):
+                continue
         if key not in seen and len(term) <= 60 and len(term.split()) <= 5:
             picked.append(term)
             seen.add(key)
@@ -178,8 +183,8 @@ def run_similarity_service(facts: ApplicationFacts, settings: Settings, run_simi
     raw_results = []
     for func, source in [(search_lens, "Lens Scholarly"), (search_epo, "EPO OPS"), (search_nihr_open_data, "NIHR Open Data")]:
         api_terms = _api_terms(source, query.primary_terms, query.secondary_terms)
-        if source == "EPO OPS" and not any(_is_patent_identifier(term) for term in api_terms) and len(api_terms) < 2:
-            raw_results.append(_not_run(source, "EPO OPS requires a patent identifier or at least two wound-specific safe query terms after cleaning.", api_terms))
+        if source == "EPO OPS" and not _epo_has_run_basis(api_terms):
+            raw_results.append(_not_run(source, "EPO OPS requires a patent identifier, a named intervention plus a technical/function term, or at least two technical/function terms after cleaning.", api_terms))
             continue
         if source != "EPO OPS" and len(api_terms) < 2:
             raw_results.append(_not_run(source, "Fewer than two safe source-specific query terms after cleaning.", api_terms))

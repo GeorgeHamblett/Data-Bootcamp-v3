@@ -7,6 +7,7 @@ from typing import Any, Iterable
 
 from schemas import ApplicationFacts, NOT_EXPLICITLY_STATED
 from similarity.query_builder import normalise, is_generic_term
+from similarity.identifiers import extract_identifiers
 
 GENERIC_DOMAIN_TERMS = {
     "software as a medical device",
@@ -67,12 +68,15 @@ IDENTIFIER_RE = re.compile(r"\b(?:US|EP|WO)\s?\d{6,}[A-Z0-9]*\b|\bAI[_\-\s]?AWAR
 class ConceptProfile:
     exact_identifiers: list[str] = field(default_factory=list)
     named_entities: list[str] = field(default_factory=list)
+    intervention_type_terms: list[str] = field(default_factory=list)
+    technical_method_or_mechanism_terms: list[str] = field(default_factory=list)
     technical_method_terms: list[str] = field(default_factory=list)
     clinical_condition_terms: list[str] = field(default_factory=list)
     clinical_problem_terms: list[str] = field(default_factory=list)
     product_function_terms: list[str] = field(default_factory=list)
     population_setting_terms: list[str] = field(default_factory=list)
     generic_domain_terms: list[str] = field(default_factory=list)
+    generic_document_terms: list[str] = field(default_factory=list)
     infrastructure_terms: list[str] = field(default_factory=list)
     domain_signals: dict[str, list[str]] = field(default_factory=dict)
     metadata_incomplete: bool = False
@@ -81,7 +85,8 @@ class ConceptProfile:
         return {
             "exact_identifier": self.exact_identifiers,
             "named_entity": self.named_entities,
-            "technical_method": self.technical_method_terms,
+            "intervention_type": self.intervention_type_terms,
+            "technical_method": self.technical_method_or_mechanism_terms or self.technical_method_terms,
             "clinical_condition": self.clinical_condition_terms or self.clinical_problem_terms,
             "product_function": self.product_function_terms,
             "population_setting": self.population_setting_terms,
@@ -91,12 +96,7 @@ class ConceptProfile:
 
 
 def _identifiers(text: str) -> list[str]:
-    ids: list[str] = []
-    for match in IDENTIFIER_RE.finditer(text or ""):
-        item = match.group(0).upper().replace(" ", "")
-        item = re.sub(r"AI[_\-\s]?AWARD", "AI_AWARD", item, flags=re.I)
-        ids.append(item)
-    return _dedupe_all(ids)
+    return extract_identifiers(text)
 
 def _dedupe(items: Iterable[str]) -> list[str]:
     seen: set[str] = set()
@@ -215,6 +215,8 @@ def extract_similarity_concepts(facts: ApplicationFacts) -> ConceptProfile:
     return ConceptProfile(
         exact_identifiers=_identifiers(all_text),
         named_entities=_dedupe([facts.acronym_or_short_name, facts.product_or_intervention, facts.project_title] + _capitalised_entities(named_text)),
+        intervention_type_terms=_noun_phrases(technical_text, ("therapeutic", "programme", "platform", "device", "test", "pathway", "package", "tool", "intervention")),
+        technical_method_or_mechanism_terms=_noun_phrases(technical_text, TECH_SUFFIXES),
         technical_method_terms=_noun_phrases(technical_text, TECH_SUFFIXES),
         clinical_condition_terms=_clinical_terms(clinical_text),
         clinical_problem_terms=_clinical_terms(clinical_text),
@@ -232,6 +234,8 @@ def extract_metadata_concepts(title: str = "", abstract: str = "", raw: Any = No
     return ConceptProfile(
         exact_identifiers=_identifiers(raw_text),
         named_entities=_capitalised_entities(f"{title} {abstract}"),
+        intervention_type_terms=_noun_phrases(raw_text, ("therapeutic", "programme", "platform", "device", "test", "pathway", "package", "tool", "intervention")),
+        technical_method_or_mechanism_terms=_noun_phrases(raw_text, TECH_SUFFIXES),
         technical_method_terms=_noun_phrases(raw_text, TECH_SUFFIXES),
         clinical_condition_terms=_clinical_terms(raw_text),
         clinical_problem_terms=_clinical_terms(raw_text),
