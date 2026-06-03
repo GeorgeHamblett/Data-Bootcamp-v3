@@ -159,18 +159,3 @@ def test_project_title_and_i4i_pda_call_extraction_from_runtime_text():
     facts = extract_text("StepRight movement quality assessment for community falls rehabilitation\nThis is an NIHR i4i PDA application for older adults.")
     assert facts.project_title.startswith("StepRight movement quality assessment")
     assert "i4i" in facts.application_claimed_call.lower() or "pda" in facts.application_claimed_call.lower()
-
-
-def test_project_title_extraction_falls_back_if_helper_name_missing(monkeypatch):
-    import application_facts as module
-
-    monkeypatch.delattr(module, "_extract_project_title", raising=False)
-    monkeypatch.delattr(module, "_extract_claimed_call", raising=False)
-    facts = module.extract_application_facts([
-        LoadedDocument(
-            "app.txt",
-            "StepRight movement quality assessment for community falls rehabilitation\nThis is an NIHR i4i PDA application.",
-        )
-    ])
-    assert facts.project_title.startswith("StepRight movement quality assessment")
-    assert "i4i" in facts.application_claimed_call.lower() or "pda" in facts.application_claimed_call.lower()

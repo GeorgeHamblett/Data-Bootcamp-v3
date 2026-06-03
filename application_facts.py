@@ -206,38 +206,6 @@ def _best_sentence(text: str, include: list[str], exclude: list[str] | None = No
 
 
 
-def _extract_project_title(text: str) -> str | None:
-    explicit = _find_first(text, FIELD_PATTERNS["project_title"])
-    if explicit:
-        return explicit[0]
-    for line in text.splitlines()[:20]:
-        candidate = _short(line, 180)
-        if _is_noise(candidate) or len(candidate.split()) < 3:
-            continue
-        if re.search(r"StepRight|movement quality assessment|falls rehabilitation", candidate, re.I) and not re.search(r"funding call|lead applicant|partners include", candidate, re.I):
-            return re.sub(r"^title\s*[:\-]\s*", "", candidate, flags=re.I).strip()
-    match = re.search(r"\b(StepRight\s*[:\-]\s*[^.\n]{8,160}|StepRight\s+movement quality assessment[^.\n]{0,140})", text, re.I)
-    if match:
-        return _short(match.group(1), 180)
-    return None
-
-
-def _extract_claimed_call(text: str) -> str | None:
-    explicit = _find_first(text, FIELD_PATTERNS["application_claimed_call"])
-    if explicit:
-        return explicit[0]
-    patterns = [
-        r"\b(NIHR\s+i4i\s+Product Development Award)\b",
-        r"\b(i4i\s+Product Development Award)\b",
-        r"\b(NIHR\s+i4i\s+PDA)\b",
-        r"\b(PDA\s+application)\b",
-    ]
-    for pattern in patterns:
-        match = re.search(pattern, text, re.I)
-        if match:
-            return _short(match.group(1), 120)
-    return None
-
 def _extract_sites_or_setting(text: str) -> str | None:
     """Prefer explicit NHS/service setting phrases over generic partner/team mentions."""
     for sentence in _sentences(text):
@@ -489,11 +457,11 @@ def extract_application_facts(documents: Iterable[LoadedDocument]) -> Applicatio
             setattr(facts, field, value)
             _add_evidence(evidence_entries, field, quote, docs)
 
-    project_title = _call_optional_extractor("_extract_project_title", _fallback_project_title, combined)
+    project_title = _extract_project_title(combined)
     if project_title:
         facts.project_title = project_title
         _add_evidence(evidence_entries, "project_title", project_title, docs)
-    claimed_call = _call_optional_extractor("_extract_claimed_call", _fallback_claimed_call, combined)
+    claimed_call = _extract_claimed_call(combined)
     if claimed_call:
         facts.application_claimed_call = claimed_call
         _add_evidence(evidence_entries, "application_claimed_call", claimed_call, docs)
