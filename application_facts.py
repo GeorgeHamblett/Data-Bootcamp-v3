@@ -421,6 +421,16 @@ def _fallback_project_title(text: str) -> str | None:
     return None
 
 
+def _extract_project_title(text: str) -> str | None:
+    """Extract a project title from application text using explicit labels or title-like leading lines."""
+    return _fallback_project_title(text)
+
+
+def _extract_claimed_call(text: str) -> str | None:
+    """Extract the funding call claimed in the application text."""
+    return _fallback_claimed_call(text)
+
+
 def _fallback_claimed_call(text: str) -> str | None:
     explicit = _find_first(text, FIELD_PATTERNS["application_claimed_call"])
     if explicit:
