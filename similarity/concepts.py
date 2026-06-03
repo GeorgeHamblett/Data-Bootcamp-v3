@@ -229,7 +229,24 @@ def extract_metadata_concepts(title: str = "", abstract: str = "", raw: Any = No
 def metadata_text(title: str = "", abstract: str = "", raw: Any = None) -> str:
     chunks = [str(title or ""), str(abstract or "")]
     if isinstance(raw, dict):
-        for key in ("title", "abstract", "snippet", "description", "metadata_text", "applicants", "organisation", "organization"):
+        for key in (
+            "title",
+            "project_title",
+            "abstract",
+            "scientific_abstract",
+            "plain_english_abstract",
+            "snippet",
+            "description",
+            "metadata_text",
+            "acronym",
+            "project_id",
+            "funding_and_awards_link",
+            "applicants",
+            "organisation",
+            "organization",
+            "doc_numbers",
+            "publication-number",
+        ):
             value = raw.get(key)
             if isinstance(value, list):
                 chunks.extend(str(v) for v in value)

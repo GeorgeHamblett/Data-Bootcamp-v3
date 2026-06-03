@@ -71,8 +71,20 @@ def _clean_epo_term(term: str) -> str:
     return cleaned
 
 
+def _is_patent_identifier(term: str) -> bool:
+    return bool(re.search(r"\b(?:US|EP|WO)\s?\d{6,}[A-Z0-9]*\b", term, re.I))
+
+
+def _patent_number_for_cql(term: str) -> str:
+    cleaned = re.sub(r"\s+", "", term.upper())
+    cleaned = re.sub(r"(A\d|B\d|U\d)$", "", cleaned)
+    return cleaned
+
+
 def _is_safe_epo_term(term: str) -> bool:
     cleaned = _clean_epo_term(term)
+    if _is_patent_identifier(cleaned):
+        return True
     key = normalise(cleaned)
     if not cleaned or is_generic_term(cleaned) or key in EPO_GENERIC_TERMS:
         return False
@@ -106,7 +118,9 @@ def build_epo_cql_query(terms: list[str] | str, *, max_terms: int = 4, quote_fir
 
     parts: list[str] = []
     for idx, term in enumerate(selected):
-        if not quote_first and idx == 0 and re.match(r"^[A-Za-z0-9-]+$", term):
+        if _is_patent_identifier(term):
+            parts.append(f"pn={_patent_number_for_cql(term)}")
+        elif not quote_first and idx == 0 and re.match(r"^[A-Za-z0-9-]+$", term):
             parts.append(f"ta={term}")
         else:
             escaped = term.replace('"', "")
@@ -220,6 +234,9 @@ def parse_epo_metadata(text: str) -> dict[str, Any]:
     parsed["metadata_text"] = " ".join([
         str(parsed.get("title", "")),
         str(parsed.get("abstract", "")),
+        " ".join(parsed.get("doc_numbers", []) or []),
+        str(parsed.get("country", "")),
+        str(parsed.get("kind", "")),
         " ".join(parsed.get("applicants", []) or []),
     ]).strip()
     return parsed
