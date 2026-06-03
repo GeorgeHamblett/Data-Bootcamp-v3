@@ -693,12 +693,6 @@ def similarity_query_terms_display(terms: list[str]) -> str:
     return ", ".join(cleaned) if cleaned else NOT_EXPLICITLY_STATED
 
 
-def similarity_query_terms_display(terms: list[str]) -> str:
-    """Return cleaned similarity query terms for captions and disabled-result rows."""
-    cleaned = _clean_similarity_terms(terms)
-    return ", ".join(cleaned) if cleaned else NOT_EXPLICITLY_STATED
-
-
 def render_similarity_check_summary(similarity: dict) -> str:
     similarity = similarity or {}
     results = similarity.get("results", [])
@@ -1054,6 +1048,7 @@ EXPECTED_RENDERER_FUNCTIONS = (
     "render_executive_review_note",
     "render_table_display_dataframe",
     "render_raw_json_note",
+    "similarity_query_terms_display",
 )
 
 __all__ = (
