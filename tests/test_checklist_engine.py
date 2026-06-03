@@ -87,3 +87,19 @@ def test_finance_not_green_from_health_economics_only():
     assert finance.rag != "GREEN"
     assert finance.evidence == []
     assert he.rag in {"GREEN", "AMBER"}
+
+
+def test_ppie_leadership_evidence_prevents_named_lead_missing_wording():
+    facts = ApplicationFacts(
+        ppie_plan="Public contributors will advise on materials.",
+        ppie_leadership_evidence="Ms Leila Karim, a co-applicant, will provide day-to-day PPI coordination.",
+    )
+    item = next(i for i in build_checklist(facts, derived_reviewer_requirements()) if i.area == "Patient and Public Involvement / Working with People and Communities")
+    assert "lead" not in item.gap.lower()
+    assert "named ppi lead" not in item.action.lower()
+
+
+def test_gantt_work_packages_milestones_prevent_gantt_missing_wording():
+    facts = ApplicationFacts(duration_months="24", work_packages=["WP1 setup Month start 1 Month end 2"], milestones=["Month 2: setup complete"])
+    item = next(i for i in build_checklist(facts, derived_reviewer_requirements()) if i.area == "Project Management")
+    assert "gantt" not in item.gap.lower()

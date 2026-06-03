@@ -153,3 +153,9 @@ def test_upload_and_reference_detection_no_knowledge_false_positive():
 def test_ppie_named_coordination_extracted():
     facts = extract_text("Ms X, a co-applicant, will provide day-to-day PPI coordination. Public contributors will advise on materials.")
     assert "PPI coordination" in facts.ppie_leadership_evidence
+
+
+def test_project_title_and_i4i_pda_call_extraction_from_runtime_text():
+    facts = extract_text("StepRight movement quality assessment for community falls rehabilitation\nThis is an NIHR i4i PDA application for older adults.")
+    assert facts.project_title.startswith("StepRight movement quality assessment")
+    assert "i4i" in facts.application_claimed_call.lower() or "pda" in facts.application_claimed_call.lower()

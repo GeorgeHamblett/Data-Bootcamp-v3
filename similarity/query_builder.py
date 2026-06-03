@@ -12,8 +12,8 @@ GENERIC_DOCUMENT_TERMS = {
     "application", "plain", "english", "plain english", "summary", "gantt", "chart", "appendix", "form", "section",
     "background", "methodology", "project", "research", "study", "objective", "aim", "funding",
     "proposal", "applicant", "partners", "partner", "draft", "report", "template", "playbook", "guidance", "work", "package",
-    "task", "month", "milestones", "milestone", "recruitment", "retention", "fidelity", "interviews",
-    "for training use only", "fictional example application", "training use only", "many people do", "falls can seriously", "milestones month",
+    "task", "month", "milestones", "milestone", "recruitment", "retention", "fidelity", "interviews", "reduc",
+    "for training use only", "fictional example application", "training use only", "many people do", "falls can seriously", "milestones month", "rehabilitation",
 }
 
 NOISE_PHRASES = [
@@ -24,7 +24,7 @@ GENERIC_ACRONYMS = {"SUS", "PPI", "PPIE", "NHS", "NIHR", "QALY", "EQ-5D", "EQ-5D
 
 PREFERRED_PHRASES = [
     r"movement quality assessment", r"falls prevention", r"older adults", r"wearable digital therapeutic",
-    r"NHS community rehabilitation", r"balance rehabilitation", r"mobility rehabilitation", r"digital therapeutic",
+    r"NHS community rehabilitation", r"older adults falls risk", r"balance rehabilitation", r"mobility rehabilitation", r"digital therapeutic",
     r"community rehabilitation", r"AI-enabled wearable", r"wearable sensor", r"atrial fibrillation detection",
 ]
 
@@ -64,8 +64,19 @@ def _dedupe_add(candidates: list[str], value: str) -> None:
     key = normalise(value)
     if not value or value == NOT_EXPLICITLY_STATED or is_generic_term(value):
         return
-    if key in {"ai-enabled", "enabled wearable digital therapeutic"} or key.startswith("enabled "):
+    if key in {"ai-enabled", "ai-enabled wearable", "ai-enabled wearable digital therapeutic", "enabled wearable digital therapeutic", "balance and mobility rehabilitation", "balance"} or key.startswith("enabled "):
         return
+    if key.endswith(" services") and "community rehabilitation" in key:
+        value = "NHS community rehabilitation" if "nhs" in key else "community rehabilitation"
+        key = normalise(value)
+    if key == "older adults with falls risk":
+        value = "older adults falls risk"
+        key = normalise(value)
+    if key.startswith("older adults aged"):
+        return
+    if key == "movement quality":
+        value = "movement quality assessment"
+        key = normalise(value)
     if len(value) > MAX_TERM_CHARS or len(value.split()) > 5:
         return
     for idx, existing in enumerate(list(candidates)):
@@ -83,8 +94,14 @@ def _concepts_from_value(value: str) -> list[str]:
     if not value or value == NOT_EXPLICITLY_STATED:
         return []
     concepts: list[str] = []
+    if re.search(r"older adults?", value, re.I) and re.search(r"falls? risk|risk of fall|falling", value, re.I):
+        _dedupe_add(concepts, "older adults falls risk")
+    for part in re.split(r"[,;]|\s+and\s+", value):
+        part = _clean(part)
+        if part and part != value and not _sentence_like(part):
+            _dedupe_add(concepts, part)
     # Product/acronym-style names are allowed if concise.
-    if not _sentence_like(value):
+    if not _sentence_like(value) and not re.search(r"[,;]", value):
         _dedupe_add(concepts, value)
     for phrase in PREFERRED_PHRASES:
         m = re.search(phrase, value, re.I)
@@ -93,7 +110,7 @@ def _concepts_from_value(value: str) -> list[str]:
     for pattern in [
         r"\b[A-Z][A-Z0-9-]{2,10}\b",
         r"\b[A-Z][A-Za-z0-9-]{3,20}\b",
-        r"\b(?:falls? prevention|balance rehabilitation|movement quality assessment|older adults|wearable digital therapeutic|digital therapeutic|community rehabilitation)\b",
+        r"\b(?:falls? prevention|mobility rehabilitation|balance rehabilitation|movement quality assessment|older adults falls risk|older adults|wearable digital therapeutic|digital therapeutic|NHS community rehabilitation|community rehabilitation)\b",
         r"\b(?:[a-z]+\s+){0,3}(?:platform|engine|sensor|device|therapeutic|rehabilitation)\b",
     ]:
         for m in re.finditer(pattern, value):

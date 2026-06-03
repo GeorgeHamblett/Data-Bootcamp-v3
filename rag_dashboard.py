@@ -61,6 +61,8 @@ def build_rag_dashboard(items: list[ChecklistItem], facts: ApplicationFacts) -> 
     he_text = _text(facts.health_economics_plan, facts.comparator_or_control, facts.endpoints)
     ppie_text = _text(facts.ppie_plan, getattr(facts, "ppie_leadership_evidence", NOT_EXPLICITLY_STATED))
     pm_text = _text(facts.project_management_plan, facts.work_packages, facts.milestones, facts.uploads_detected)
+    has_gantt_or_workplan = bool(facts.work_packages) or bool(facts.milestones) or any("gantt" in str(u).lower() or "workplan" in str(u).lower() for u in facts.uploads_detected)
+    has_ppie_leadership = any(x in ppie_text for x in ["lead", "co-applicant", "coordinat", "ms ", "mr ", "dr "])
     finance_text = _text(facts.finance_or_budget_evidence)
 
     checks_by_subsystem = {
@@ -79,7 +81,7 @@ def build_rag_dashboard(items: list[ChecklistItem], facts: ApplicationFacts) -> 
         ],
         "Patient and Public Involvement": [
             _has(facts.ppie_plan) or _has(getattr(facts, "ppie_leadership_evidence", NOT_EXPLICITLY_STATED)),
-            any(x in ppie_text for x in ["lead", "co-applicant", "coordinat", "advisory group"]),
+            has_ppie_leadership or "advisory group" in ppie_text,
             any(x in ppie_text for x in ["payment", "expenses", "support"]), any(x in ppie_text for x in ["shaped", "co-design", "changed"]),
         ],
         "Research Inclusion": [
@@ -88,7 +90,7 @@ def build_rag_dashboard(items: list[ChecklistItem], facts: ApplicationFacts) -> 
             "cost" in _text(facts.research_inclusion_plan),
         ],
         "Project Management": [
-            _has(facts.project_management_plan), bool(facts.work_packages), bool(facts.milestones), "gantt" in pm_text,
+            _has(facts.project_management_plan), bool(facts.work_packages), bool(facts.milestones), has_gantt_or_workplan,
             any(x in pm_text for x in ["risk", "governance", "contingenc"]), _has(facts.duration_months),
         ],
         "Finance": [
@@ -113,12 +115,12 @@ def build_rag_dashboard(items: list[ChecklistItem], facts: ApplicationFacts) -> 
             rag = "RED"; score = 0; warnings.append("No PPIE evidence forces PPIE RED.")
         if subsystem == "Patient and Public Involvement" and _has(getattr(facts, "ppie_leadership_evidence", NOT_EXPLICITLY_STATED)) and rag == "RED":
             rag = "AMBER"; score = max(score, 2); warnings.append("Named PPI coordination prevents PPIE RED but needs payment/support and dedicated-lead confirmation.")
-        if subsystem == "Patient and Public Involvement" and rag == "GREEN" and (not any(x in ppie_text for x in ["dedicated ppi lead", "named ppi lead"]) or not any(x in ppie_text for x in ["payment", "expenses", "support"])):
-            rag = "AMBER"; warnings.append("No explicit dedicated/named PPI lead or payment/support prevents PPIE GREEN.")
+        if subsystem == "Patient and Public Involvement" and rag == "GREEN" and (not has_ppie_leadership or not any(x in ppie_text for x in ["payment", "expenses", "support"])):
+            rag = "AMBER"; warnings.append("PPIE payment/support or contributor impact needs confirmation before PPIE GREEN.")
         if subsystem == "Health Economics" and rag == "GREEN" and not ("perspective" in he_text and any(x in he_text for x in ["comparator", "usual care", "current care"]) and "cost" in he_text):
             rag = "AMBER"; warnings.append("No health economics perspective/comparator/cost-outcome plan prevents Health Economics GREEN.")
-        if subsystem == "Project Management" and rag == "GREEN" and not ("gantt" in pm_text and bool(facts.milestones)):
-            rag = "AMBER"; warnings.append("No Gantt/project management evidence prevents Project Management GREEN.")
+        if subsystem == "Project Management" and rag == "GREEN" and not (has_gantt_or_workplan and bool(facts.milestones)):
+            rag = "AMBER"; warnings.append("Project governance, risk register or contingencies need confirmation before Project Management GREEN.")
         if rag == "GREEN" and score == 0:
             rag = "GREY"; warnings.append("No GREEN without relevant evidence.")
 
@@ -128,5 +130,11 @@ def build_rag_dashboard(items: list[ChecklistItem], facts: ApplicationFacts) -> 
         if rag == "AMBER" and main_gap == "No major gap identified from relevant evidence.":
             main_gap = default_gap
         priority_action = next((item.action for item in sub_items if item.rag in {"RED", "AMBER", "GREY"}), "Review consistency with application evidence and call guidance.")
+        if subsystem == "Patient and Public Involvement" and has_ppie_leadership and rag != "GREEN":
+            main_gap = "PPI leadership is evidenced; verify PPIE payment/support costs and public contributor impact."
+            priority_action = "Verify PPIE payment/support costs and public contributor impact."
+        if subsystem == "Project Management" and has_gantt_or_workplan and rag != "GREEN":
+            main_gap = "Gantt/workplan evidence is present; verify governance, risk register and contingencies."
+            priority_action = "Verify project governance, risk register and contingencies."
         rows.append({"Subsystem": subsystem, "RAG": rag, "Score 0-5": score, "Checks evidenced": evidenced, "Main gap": main_gap, "Priority action": priority_action, "hard_validation_warnings": warnings})
     return rows

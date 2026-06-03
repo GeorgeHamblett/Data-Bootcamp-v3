@@ -18,6 +18,8 @@ from report_renderer import (
     render_rag_dashboard_summary,
     render_raw_json_note,
     render_similarity_check_summary,
+    render_table_display_dataframe,
+    similarity_query_terms_display,
     similarity_table_rows,
 )
 from settings import Settings
@@ -99,7 +101,6 @@ def main() -> None:
         st.markdown(render_main_case_summary(facts, dashboard, priority))
         st.markdown(render_executive_review_note(facts, dashboard, priority))
     with tab_checklist:
-        st.markdown("## Summary of key information extracted")
         st.markdown(render_checklist_report_summary(checklist, facts))
         st.markdown("## Detailed checklist table")
         st.dataframe(checklist_table_rows(checklist), use_container_width=True)
@@ -107,7 +108,6 @@ def main() -> None:
             st.subheader("Developer: raw extracted requirements")
             st.json([req.__dict__ for req in baseline + specific_reqs])
     with tab_rag:
-        st.markdown("## Summary of key information extracted")
         st.markdown(render_rag_dashboard_summary(dashboard))
         st.markdown("## Detailed RAG dashboard")
         st.dataframe(dashboard_table_rows(dashboard), use_container_width=True)
@@ -115,12 +115,11 @@ def main() -> None:
         if warnings:
             st.warning("; ".join(warnings))
     with tab_similarity:
-        st.markdown("## Summary of key information extracted")
         st.markdown(render_similarity_check_summary(similarity))
         st.markdown("## Detailed similarity results")
         st.write("Similarity uses live APIs only when explicitly enabled and privacy gates allow it. Normal flow does not simulate results.")
         st.dataframe(similarity_table_rows(similarity["results"]), use_container_width=True)
-        st.caption("Query terms: " + ", ".join(similarity["query"].primary_terms + similarity["query"].secondary_terms))
+        st.caption("Query terms: " + similarity_query_terms_display(similarity["query"].primary_terms + similarity["query"].secondary_terms))
     with tab_priority:
         st.markdown(priority)
     with tab_raw:

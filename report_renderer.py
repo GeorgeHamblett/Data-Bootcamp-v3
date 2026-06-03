@@ -25,27 +25,76 @@ def _present(value: object) -> bool:
     return bool(value and value != NOT_EXPLICITLY_STATED)
 
 
+def _strip_terminal_punctuation(value: object) -> str:
+    return str(value or "").strip().rstrip(" .;:")
+
+
+def _join_sentences(parts: list[str], separator: str = ". ") -> str:
+    cleaned = [_strip_terminal_punctuation(part) for part in parts if _present(part)]
+    return separator.join(part for part in cleaned if part)
+
+
+def _remove_label_prefix(value: object, labels: tuple[str, ...]) -> str:
+    text = _strip_terminal_punctuation(value)
+    for label in labels:
+        text = re.sub(rf"^{label}\s*[:\-]\s*", "", text, flags=re.I)
+    return text
+
+
+def _normalise_study_design(value: object) -> str:
+    text = _remove_label_prefix(value, ("study design", "design", "methods?"))
+    text = re.sub(r"^to conduct an?\s+", "", text, flags=re.I)
+    text = re.sub(r"^we will conduct an?\s+", "", text, flags=re.I)
+    return text[:1].lower() + text[1:] if text.startswith(("A ", "An ")) else text
+
+
+def _unique_texts(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    output: list[str] = []
+    for value in values:
+        key = value.lower().strip()
+        if key and key not in seen:
+            seen.add(key)
+            output.append(value)
+    return output
+
 
 def _compress(value: object, kind: str = "generic") -> str:
     if not _present(value):
         return ""
     text = str(value).strip()
     if kind == "population":
-        for pattern in [r"(older adults?[^.;]{0,120})", r"(participants? aged \d+[^.;]{0,100})", r"((?:patients|people|adults|children|service users)[^.;]{0,100})"]:
-            import re
+        text = re.split(r"\bwill be (?:randomi[sz]ed|recruited|allocated|invited)\b", text, maxsplit=1, flags=re.I)[0].strip()
+        for pattern in [
+            r"(older adults?[^.;]{0,120})",
+            r"((?:participants?\s+)?aged \d+[^.;,]{0,100})",
+            r"((?:patients|people|adults|children|service users)[^.;]{0,100})",
+        ]:
             m = re.search(pattern, text, re.I)
             if m:
                 return m.group(1).strip(" .;:")
     if kind == "need":
-        import re
         bits = []
         for pattern in [r"falls? prevention", r"reduce risk of falling", r"balance(?: confidence)?", r"mobility rehabilitation", r"confidence", r"independence", r"rehabilitation"]:
             if re.search(pattern, text, re.I):
                 val = re.search(pattern, text, re.I).group(0).lower()
+                if val == "rehabilitation" and any("rehabilitation" in bit for bit in bits):
+                    continue
                 if val not in bits:
                     bits.append(val)
         if bits:
             return ", ".join(bits)
+    if kind == "setting":
+        for pattern in [
+            r"(NHS[^.;,]{0,140}(?:services?|clinics?|teams?|trusts?|sites?|settings?|rehabilitation))",
+            r"((?:primary|secondary|community|social) care[^.;,]{0,80})",
+            r"(community rehabilitation[^.;,]{0,80})",
+        ]:
+            match = re.search(pattern, text, re.I)
+            if match:
+                return match.group(1).strip(" .;:")
+        if re.match(r"partners? include", text, re.I):
+            return ""
     # Avoid rendering raw proposal sentences in summary clauses.
     if len(text.split()) > 18 or text.lower().startswith(("this project", "we will", "the project will")):
         text = text.split(".")[0]
@@ -70,7 +119,101 @@ def _phrase(label: str, value: object) -> str:
     return f"{label} {value}" if _present(value) else ""
 
 
-def render_summary(facts: ApplicationFacts, dashboard: list[dict], priority_gaps: str) -> str:
+def clean_display_value(value: object) -> str:
+    """Clean a value for Markdown display without preserving accidental paragraph breaks."""
+    if isinstance(value, list):
+        raw = "\n".join(str(v) for v in value if _present(v))
+    else:
+        raw = str(value or "")
+    raw = raw.replace("\r\n", "\n").replace("\r", "\n")
+    parts = [re.sub(r"\s+", " ", part).strip(" -•\t") for part in raw.split("\n") if part.strip()]
+    cleaned = " ".join(parts).strip()
+    return cleaned if _present(cleaned) else NOT_EXPLICITLY_STATED
+
+
+def _split_action_values(values: list[str]) -> list[str]:
+    actions: list[str] = []
+    for value in values:
+        raw = str(value or "").replace("\r\n", "\n").replace("\r", "\n")
+        for part in raw.split("\n"):
+            cleaned = clean_table_evidence(part)
+            if cleaned != NOT_EXPLICITLY_STATED:
+                actions.append(cleaned)
+    return actions
+
+def _summary_concepts(value: object, kind: str) -> str:
+    text = str(value or "")
+    catalog = {
+        "regulatory": [
+            (r"UKCA", "UKCA"), (r"DTAC", "DTAC"), (r"IEC\s*62304", "IEC 62304"),
+            (r"ISO\s*14971", "ISO 14971"), (r"ISO\s*13485", "ISO 13485"),
+            (r"risk management", "risk management"), (r"technical documentation", "technical documentation"),
+        ],
+        "health_economics": [
+            (r"NHS perspective", "NHS perspective"), (r"usual care", "usual care comparator"),
+            (r"resource use", "resource use"), (r"micro-cost", "micro-costing"),
+            (r"decision-analytic", "decision-analytic model"), (r"cost-effectiveness", "cost-effectiveness"),
+            (r"budget impact", "budget impact"), (r"EQ-5D-5L|EQ-5D|QALY", "EQ-5D-5L/QALY"),
+            (r"sensitivity", "sensitivity analysis"),
+        ],
+    }
+    out: list[str] = []
+    for pattern, label in catalog.get(kind, []):
+        if re.search(pattern, text, re.I) and label not in out:
+            out.append(label)
+    return ", ".join(out)
+
+
+def _clean_outcomes(values: list[str], limit: int = 10) -> list[str]:
+    allowed = [
+        (r"recruitment(?: rate)?", "Recruitment rate"), (r"retention", "retention"),
+        (r"adherence", "adherence"), (r"fidelity", "fidelity"),
+        (r"Berg Balance Scale", "Berg Balance Scale"), (r"Timed Up and Go", "Timed Up and Go"),
+        (r"Activities-specific Balance Confidence(?: scale)?", "Activities-specific Balance Confidence scale"),
+        (r"EQ-5D-5L", "EQ-5D-5L"), (r"SUS", "SUS"), (r"PSSUQ", "PSSUQ"),
+    ]
+    out: list[str] = []
+    haystack = " ; ".join(values)
+    for pattern, label in allowed:
+        if re.search(pattern, haystack, re.I) and label.lower() not in {v.lower() for v in out}:
+            out.append(label)
+        if len(out) >= limit:
+            break
+    if out:
+        return out
+    for value in values:
+        cleaned = clean_display_value(value)
+        if cleaned == NOT_EXPLICITLY_STATED or len(cleaned.split()) > 8 or re.search(r"primary outcomes? are|secondary outcomes? include", cleaned, re.I):
+            continue
+        if cleaned.lower() not in {v.lower() for v in out}:
+            out.append(cleaned)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _clean_similarity_terms(terms: list[str]) -> list[str]:
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for term in terms:
+        for part in re.split(r"[,;]", str(term or "")):
+            value = clean_display_value(part).strip()
+            key = value.lower()
+            if not value or value == NOT_EXPLICITLY_STATED or key == "rehabilitation":
+                continue
+            if "fall prevention" in key:
+                value = "falls prevention"
+                key = value
+            if key.endswith(" services") and "community rehabilitation" in key:
+                value = "NHS community rehabilitation" if "nhs" in key else "community rehabilitation"
+                key = value.lower()
+            if key not in seen:
+                seen.add(key)
+                cleaned.append(value)
+    return cleaned
+
+
+def render_main_case_summary(facts: ApplicationFacts, dashboard: list[dict], priority_gaps: str = "") -> str:
     identity_bits = [
         _phrase("The project title is", facts.project_title),
         _phrase("The application is linked to", facts.application_claimed_call),
@@ -83,47 +226,61 @@ def render_summary(facts: ApplicationFacts, dashboard: list[dict], priority_gaps
     population_bits = [
         ("The target population is", compressed_population),
         ("The clinical or care need is", compressed_need),
-        ("The setting is", _compress(facts.sites_or_setting)),
+        ("The setting is", _compress(facts.sites_or_setting, "setting")),
     ]
     population = ". ".join(f"{label} {value}" for label, value in _unique_phrases(population_bits) if value)
 
-    evidence_bits = [
-        _phrase("The design is", facts.study_design),
-        _phrase("using", facts.methodology),
-        _phrase("with sample size", facts.sample_size),
-        _phrase("and comparator/control", facts.comparator_or_control),
+    design = _normalise_study_design(facts.study_design)
+    methodology = _strip_terminal_punctuation(facts.methodology) if _present(facts.methodology) else ""
+    sample_size = _strip_terminal_punctuation(facts.sample_size) if _present(facts.sample_size) else ""
+    comparator = _remove_label_prefix(facts.comparator_or_control, ("comparator", "control")) if _present(facts.comparator_or_control) else ""
+    design_sentence = _phrase("The design is", design)
+    if methodology:
+        design_sentence = _join_sentences([design_sentence, f"using {methodology}"], ", ")
+    sample_and_comparator = " and ".join(
+        part for part in [
+            f"sample size {sample_size}" if sample_size else "",
+            f"comparator/control {comparator}" if comparator else "",
+        ]
+        if part
+    )
+    if sample_and_comparator:
+        design_sentence = _join_sentences([design_sentence, f"with {sample_and_comparator}"], ", ")
+    development_parts = [
         _phrase("The development-stage evidence is", facts.trl_evidence),
         _phrase("The extracted timeline appears to run to", ("Month " + facts.duration_months) if _present(facts.duration_months) and "month" not in str(facts.duration_months).lower() else facts.duration_months),
     ]
-    evidence = ". ".join(bit for bit in evidence_bits if bit) or "The evidence-generation design needs clearer application evidence."
-    outcomes = ", ".join(facts.endpoints[:10]) if facts.endpoints else "outcomes/endpoints need clearer confirmation"
+    evidence = _join_sentences([design_sentence, _join_sentences(development_parts)]) or "The evidence-generation design needs clearer application evidence."
+    outcomes = ", ".join(_clean_outcomes(facts.endpoints)) if facts.endpoints else "outcomes/endpoints need clearer confirmation"
 
+    regulatory_summary = _summary_concepts(facts.regulatory_plan, "regulatory") or _compress(facts.regulatory_plan)
+    health_econ_summary = _summary_concepts(facts.health_economics_plan, "health_economics") or _compress(facts.health_economics_plan)
     readiness_bits = [
-        _phrase("Regulatory/adoption evidence includes", facts.regulatory_plan),
-        _phrase("Health economics evidence includes", facts.health_economics_plan),
-        _phrase("PPIE evidence includes", facts.ppie_plan),
-        _phrase("Research inclusion evidence includes", facts.research_inclusion_plan),
-        _phrase("Project management evidence includes", facts.project_management_plan),
+        _phrase("Regulatory/adoption evidence includes", regulatory_summary),
+        _phrase("Health economics evidence includes", health_econ_summary),
+        _phrase("PPIE evidence includes", _compress(facts.ppie_plan)),
+        _phrase("Research inclusion evidence includes", _compress(facts.research_inclusion_plan)),
+        _phrase("Project management evidence includes", _compress(facts.project_management_plan)),
     ]
-    readiness = " ".join(bit + "." for bit in readiness_bits if bit)
+    readiness = " ".join(_strip_terminal_punctuation(bit) + "." for bit in readiness_bits if bit)
     if not readiness:
         readiness = "Adoption, regulatory, PPIE, inclusion and project-management readiness need clearer evidence."
 
     risk_rows = [row for row in dashboard if row["RAG"] in {"RED", "AMBER", "GREY"}]
-    risks = ". ".join(f"{row['Subsystem']} - {row['Priority action']}" for row in risk_rows[:5]) or "No major checklist risks identified from relevant evidence."
+    risks = "; ".join(f"{row['Subsystem']} - {_strip_terminal_punctuation(row['Priority action'])}" for row in risk_rows[:5]) or "No major checklist risks identified from relevant evidence"
 
     return f"""Summary of key information extracted
 
-1. Project at a glance
+## Project at a glance
 {identity}. {population}. The summary is based on the runtime application and supporting documents only; built-in NIHR/RSS guidance is used as checklist guidance, not as application evidence. Where source documents include workplans or appendices, those supporting documents are considered alongside the main application text.
 
-2. Proposed evidence generation
+## Proposed evidence generation
 {evidence}. Extracted endpoints and outcome measures include {outcomes}. These facts are used to judge clinical validation only where they directly match the requirement being checked, so a duration, Gantt row or outcome measure is not reused to satisfy unrelated applicant, finance or eligibility requirements.
 
-3. Adoption and delivery readiness
+## Adoption and delivery readiness
 {readiness} Finance is considered separately from health economics: economic modelling, EQ-5D/QALY or cost-effectiveness wording supports health economics, while Finance requires actual budget, cost-category, rate, cap, AcoRD, SoECAT or cost-justification evidence.
 
-4. Main RSS checklist risks
+## Main RSS checklist risks
 The main adviser risks are: {risks}. The Priority Missing Evidence tab translates these into practical actions, such as verifying AI-use and conflicts declarations, named PPI leadership/payment, call-specific uploads, references, and detailed budget/AcoRD/SoECAT evidence where applicable. Items marked missing, partially present or needing human check should be resolved against the uploaded application and the specific funding call rather than against generic guidance text.
 """
 
@@ -133,13 +290,93 @@ def render_summary(facts: ApplicationFacts, dashboard: list[dict], priority_gaps
     return render_main_case_summary(facts, dashboard, priority_gaps)
 
 
+def _lines(values: list[str]) -> str:
+    """Render unique non-empty values as Markdown bullets."""
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for text in _split_action_values(values):
+        key = text.lower()
+        if key not in seen:
+            seen.add(key)
+            cleaned.append(text)
+    if not cleaned:
+        return "- None identified from available evidence."
+    return "\n".join(f"- {value}" for value in cleaned)
+
+
+def clean_table_evidence(value: object, area: str = "", requirement: str = "") -> str:
+    """Clean evidence snippets so tables show adviser-facing content, not portal noise."""
+    if isinstance(value, list):
+        text = "; ".join(str(v) for v in value if _present(v))
+    else:
+        text = str(value or "").strip()
+    text = re.sub(r"\s*\n\s*", " ", text)
+    if not _present(text):
+        return NOT_EXPLICITLY_STATED
+
+    portal_noise = re.compile(
+        r"click invite|fill in (?:the )?name/?email|fill in (?:the )?name|email address|save draft|"
+        r"awards management system|on-screen|button|automatically pull|registered|use this guidance",
+        re.I,
+    )
+    parts = [part.strip(" .;:\n\t") for part in re.split(r"[.;]\s+", text) if part.strip()]
+    useful = [part for part in parts if not portal_noise.search(part)]
+    cleaned = "; ".join(useful).strip(" ;")
+    if not cleaned:
+        return NOT_EXPLICITLY_STATED
+    return cleaned[:500]
+
+
+
+def _safe(value: object) -> str:
+    """Return a readable fallback for missing extracted values."""
+    return clean_table_evidence(value)
+
+
+def _counts_by_rag(items: list[ChecklistItem]) -> dict[str, int]:
+    """Count checklist items by RAG status with stable zero defaults."""
+    counts = Counter(item.rag for item in items)
+    return {rag: counts.get(rag, 0) for rag in ("GREEN", "AMBER", "RED", "GREY")}
+
+
+def _top_actions_from_items(items: list[ChecklistItem], rags: set[str], limit: int) -> list[str]:
+    """Return deduplicated adviser actions for checklist items matching the requested RAG statuses."""
+    actions: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        if item.rag not in rags:
+            continue
+        action = _action(item)
+        key = action.lower()
+        if key not in seen:
+            seen.add(key)
+            actions.append(action)
+        if len(actions) >= limit:
+            break
+    return actions
+
+
+def group_dashboard_by_rag(dashboard: list[dict]) -> dict[str, list[str]]:
+    """Group dashboard subsystem names by RAG status for summaries."""
+    groups: dict[str, list[str]] = {rag: [] for rag in ("GREEN", "AMBER", "RED", "GREY")}
+    for row in dashboard:
+        rag = str(row.get("RAG", "GREY") or "GREY").upper()
+        subsystem = str(row.get("Subsystem", "")).strip()
+        if not subsystem:
+            continue
+        groups.setdefault(rag, []).append(subsystem)
+    return groups
+
+
 def render_checklist_report_summary(items: list[ChecklistItem], facts: ApplicationFacts | None = None) -> str:
     counts = _counts_by_rag(items)
     strongest = sorted({item.area for item in items if item.rag == "GREEN"})[:5]
     high_risk = sorted({item.area for item in items if item.rag in {"RED", "AMBER"}})[:6]
     found = [item.area for item in items if item.evidence and item.rag in {"GREEN", "AMBER"}]
     missing_actions = _top_actions_from_items(items, {"RED", "AMBER"}, 5)
-    return f"""- **Checklist row counts:** GREEN {counts['GREEN']}, AMBER {counts['AMBER']}, RED {counts['RED']}, GREY {counts['GREY']}.
+    return f"""## Summary of key information extracted
+
+- **Checklist row counts:** GREEN {counts['GREEN']}, AMBER {counts['AMBER']}, RED {counts['RED']}, GREY {counts['GREY']}.
 - **Strongest evidenced areas:** {', '.join(strongest) if strongest else 'None identified from available evidence.'}
 - **Missing/high-risk areas:** {', '.join(high_risk) if high_risk else 'None identified from available evidence.'}
 - **Evidence found from the application:** {', '.join(dict.fromkeys(found[:8])) if found else 'None identified from available evidence.'}
@@ -151,7 +388,7 @@ def render_checklist_report_summary(items: list[ChecklistItem], facts: Applicati
 
 
 def render_rag_dashboard_summary(dashboard: list[dict]) -> str:
-    groups = _dashboard_groups(dashboard)
+    groups = group_dashboard_by_rag(dashboard)
     red = groups["RED"]
     amber = groups["AMBER"]
     profile = "high risk" if red else "moderate risk" if amber else "lower risk"
@@ -163,13 +400,29 @@ def render_rag_dashboard_summary(dashboard: list[dict]) -> str:
                 actions.append(action)
         if len(actions) >= 3:
             break
-    return f"""- **Overall risk profile:** {profile}. The dashboard summarises the detailed checklist into seven RSS risk areas.
-- **GREEN subsystems:** {', '.join(groups['GREEN']) if groups['GREEN'] else 'None identified from available evidence.'}
-- **AMBER subsystems:** {', '.join(groups['AMBER']) if groups['AMBER'] else 'None identified from available evidence.'}
-- **RED subsystems:** {', '.join(groups['RED']) if groups['RED'] else 'None identified from available evidence.'}
-- **Top 3 adviser actions:**
+    return f"""## Summary of key information extracted
+
+### Overall position
+- Overall risk profile: {profile}. The dashboard summarises the detailed checklist into seven RSS risk areas.
+
+### GREEN subsystems
+{_lines(groups['GREEN'])}
+
+### AMBER subsystems
+{_lines(groups['AMBER'])}
+
+### RED subsystems
+{_lines(groups['RED'])}
+
+### Top adviser actions
 {_lines(actions[:3])}
 """
+
+
+def similarity_query_terms_display(terms: list[str]) -> str:
+    """Return cleaned similarity query terms for captions and disabled-result rows."""
+    cleaned = _clean_similarity_terms(terms)
+    return ", ".join(cleaned) if cleaned else NOT_EXPLICITLY_STATED
 
 
 def render_similarity_check_summary(similarity: dict) -> str:
@@ -182,7 +435,7 @@ def render_similarity_check_summary(similarity: dict) -> str:
         for term in result.get("query_terms_used", []):
             if term not in terms:
                 terms.append(term)
-    clean_terms = [t for t in terms if t and t.lower() not in {"second", "some", "adherence"}]
+    clean_terms = _clean_similarity_terms([t for t in terms if t and t.lower() not in {"second", "some", "adherence"}])
     statuses = [str(r.get("status", "")) for r in results]
     if not results or all(s == "not_run" for s in statuses):
         run_state = "Similarity checking was disabled or not run."
@@ -198,7 +451,9 @@ def render_similarity_check_summary(similarity: dict) -> str:
     total_matches = sum(int(r.get("matches_found", 0) or 0) for r in results)
     errors = [str(r.get("why_relevant", "API error")) for r in results if r.get("status") == "error"]
     safe_errors = [re.sub(r"https?://\S+", "[URL suppressed]", e) for e in errors]
-    return f"""- **Run status:** {run_state}
+    return f"""## Summary of key information extracted
+
+- **Run status:** {run_state}
 - **Cleaned query terms used:** {', '.join(clean_terms[:8]) if clean_terms else 'None identified from available evidence.'}
 - **Meaningful matches found:** {'Yes' if total_matches else 'No'} ({total_matches} total reported matches).
 - **Overall novelty/similarity risk:** {highest}.
@@ -263,8 +518,16 @@ def render_priority_missing_evidence(items: list[ChecklistItem], dashboard: list
 
 
 def render_executive_review_note(facts: ApplicationFacts, dashboard: list[dict], priority_gaps: str = "") -> str:
-    groups = _dashboard_groups(dashboard)
-    first_action = next((row.get("Priority action") for row in dashboard if row.get("RAG") in {"RED", "AMBER"}), "Review the detailed checklist table.")
+    # Keep this renderer self-contained: it is called after the main summary in the
+    # Streamlit app, so it should never fail because a private grouping helper was
+    # renamed or unavailable in an older checkout.
+    groups: dict[str, list[str]] = {rag: [] for rag in ("GREEN", "AMBER", "RED", "GREY")}
+    for row in dashboard:
+        rag = str(row.get("RAG", "GREY") or "GREY").upper()
+        subsystem = str(row.get("Subsystem", "")).strip()
+        if subsystem:
+            groups.setdefault(rag, []).append(subsystem)
+    first_action = _strip_terminal_punctuation(next((row.get("Priority action") for row in dashboard if row.get("RAG") in {"RED", "AMBER"}), "Review the detailed checklist table"))
     bullets = [
         f"- Application focus: {_safe(facts.product_or_intervention)} for {_compress(facts.target_population, 'population') or NOT_EXPLICITLY_STATED}.",
         f"- Proposed evidence generation: {_safe(facts.study_design)} with {_safe(facts.sample_size)} and timeline {_safe(facts.duration_months)} months.",
@@ -303,7 +566,7 @@ def render_table_display_dataframe(rows: list[Any], table_type: str = "checklist
             {
                 "Source": r.get("source", ""),
                 "Status": r.get("status", ""),
-                "Query terms used": clean_table_evidence(", ".join(r.get("query_terms_used", [])), "Similarity", "Query terms"),
+                "Query terms used": clean_table_evidence(", ".join(_clean_similarity_terms(r.get("query_terms_used", []))), "Similarity", "Query terms"),
                 "Matches found": r.get("matches_found", 0),
                 "Top match": clean_table_evidence(r.get("top_match", ""), "Similarity", "Top match"),
                 "Score": r.get("score", 0.0),
@@ -344,8 +607,11 @@ EXPECTED_RENDERER_FUNCTIONS = (
 __all__ = (
     "TableRow",
     "checklist_table_rows",
+    "clean_display_value",
     "clean_table_evidence",
     "dashboard_table_rows",
+    "group_dashboard_by_rag",
+    "similarity_query_terms_display",
     "raw_json_payload",
     "render_summary",
     "similarity_table_rows",
