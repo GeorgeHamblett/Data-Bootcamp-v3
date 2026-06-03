@@ -478,6 +478,7 @@ def render_main_case_summary(
     ppie_lead = clean_table_evidence(_get(facts, "ppie_leadership_evidence"), max_words=25)
     inclusion = clean_table_evidence(_get(facts, "research_inclusion_plan"), max_words=35)
     project_management = clean_table_evidence(_get(facts, "project_management_plan"), max_words=35)
+    finance = clean_table_evidence(_get(facts, "finance_or_budget_evidence"), max_words=40)
 
     groups = group_dashboard_by_rag(dashboard)
     risk_rows = [row for row in dashboard or [] if str(row.get("RAG", "")).upper() in {"RED", "AMBER", "GREY"}]
@@ -519,6 +520,7 @@ def render_main_case_summary(
     - **PPIE leadership evidence:** {ppie_lead}
     - **Research inclusion evidence:** {inclusion}
     - **Project management evidence:** {project_management}
+    - **Finance evidence:** {finance}
 
     Finance is considered separately from health economics. Economic modelling, EQ-5D/QALY or cost-effectiveness wording supports health economics, while Finance requires actual budget, cost-category, rate, cap, AcoRD, SoECAT or cost-justification evidence.
 

@@ -159,3 +159,38 @@ def test_project_title_and_i4i_pda_call_extraction_from_runtime_text():
     facts = extract_text("StepRight movement quality assessment for community falls rehabilitation\nThis is an NIHR i4i PDA application for older adults.")
     assert facts.project_title.startswith("StepRight movement quality assessment")
     assert "i4i" in facts.application_claimed_call.lower() or "pda" in facts.application_claimed_call.lower()
+
+from tests.fixtures import WOUNDWISE_APP
+from checklist_engine import build_checklist
+from guidance_parser import derived_reviewer_requirements
+
+
+def test_woundwise_exemplar_regression_extraction():
+    facts = extract_application_facts([LoadedDocument("fictional_NIHR_i4i_PDA_exemplar_application_v3.txt", WOUNDWISE_APP)])
+    assert facts.product_or_intervention != "The"
+    assert "WoundWise-AI handheld multispectral imaging device" in facts.product_or_intervention
+    assert facts.acronym_or_short_name == "WoundWise-AI"
+    assert "480" in facts.sample_size
+    assert facts.sample_size != "126 participants"
+    assert "126 participants with events" not in facts.sample_size
+    assert "Ms Priya Nair" in facts.ppie_leadership_evidence
+    assert "Dr Farah Siddiqui" in facts.research_inclusion_plan or "sex, gender, ethnicity" in facts.research_inclusion_plan
+    assert facts.research_inclusion_plan != facts.ppie_leadership_evidence
+    assert "Ms Priya Nair" not in facts.research_inclusion_plan
+    for term in ["detailed budget", "cost justification", "current rates", "AcoRD", "SoECAT"]:
+        assert term in facts.finance_or_budget_evidence
+    assert len(facts.work_packages) >= 7
+    assert any(row.startswith("WP1") for row in facts.work_packages)
+    assert any(row.startswith("WP7") for row in facts.work_packages)
+    for month in ["Month 3", "Month 6", "Month 24", "Month 30"]:
+        assert any(month in milestone for milestone in facts.milestones)
+    assert "invented" not in facts.market_or_impact_evidence.lower()
+    assert any(section in facts.market_or_impact_evidence for section in ["Market and adoption", "IP and commercialisation", "Knowledge mobilisation"])
+
+
+def test_woundwise_budget_and_finance_is_evidenced_not_ppie_only():
+    facts = extract_application_facts([LoadedDocument("app.txt", WOUNDWISE_APP)])
+    items = build_checklist(facts, derived_reviewer_requirements())
+    finance = next(item for item in items if item.area == "Budget and Finance")
+    assert finance.rag == "GREEN"
+    assert "PPIE" not in facts.finance_or_budget_evidence[:20]

@@ -90,3 +90,27 @@ def test_single_generic_sus_overlap_is_none():
     scored = score_result(["SUS"], "A study using SUS", "")
     assert scored["risk"] == "NONE"
     assert scored["score"] == 0.0
+
+from tests.fixtures import WOUNDWISE_APP
+from application_facts import extract_application_facts
+from document_loader import LoadedDocument
+
+
+def test_woundwise_similarity_query_excludes_stopwords_and_fragments():
+    f = extract_application_facts([LoadedDocument("app.txt", WOUNDWISE_APP)])
+    q = build_similarity_query(f, [WOUNDWISE_APP, "pressure wounds or surgical w"])
+    terms = q.primary_terms + q.secondary_terms
+    normalised_terms = {term.lower() for term in terms}
+    assert "the" not in normalised_terms
+    assert "early" not in normalised_terms
+    assert not any(term.lower().endswith(" surgical w") or term.lower() == "pressure wounds or surgical w" for term in terms)
+    joined = " ".join(terms).lower()
+    for expected in ["woundwise-ai", "multispectral wound imaging", "wound imaging device", "software as a medical device", "wound deterioration detection"]:
+        assert expected in joined
+    assert any(term in joined for term in ["lower-limb wounds", "pressure wounds", "surgical wounds", "community wound services"])
+
+
+def test_stopword_only_similarity_match_scores_none():
+    scored = score_result(["The"], "The CJD mice project", "The study evaluates a mouse model.")
+    assert scored["risk"] == "NONE"
+    assert scored["score"] == 0.0
