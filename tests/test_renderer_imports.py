@@ -73,3 +73,43 @@ def test_public_renderer_functions_run_without_missing_private_helpers():
     assert "Checklist row counts" in report_renderer.render_checklist_report_summary(checklist, facts)
     assert "Overall risk profile" in report_renderer.render_rag_dashboard_summary(dashboard)
     assert "Application focus" in report_renderer.render_executive_review_note(facts, dashboard, "")
+
+
+def test_clean_markdown_output_strips_code_blocks_and_indentation():
+    raw = """
+        ```markdown
+            ## Query basis
+
+            **Checklist row counts:**
+        ```
+    """
+
+    cleaned = report_renderer.clean_markdown_output(raw)
+
+    assert cleaned == "## Query basis\n\n**Checklist row counts:**"
+    assert "```" not in cleaned
+    assert not any(line.startswith(("  ", "    ", "\t")) for line in cleaned.splitlines() if line)
+
+
+def test_report_renderers_return_unindented_markdown():
+    facts = ApplicationFacts(project_title="Import smoke", product_or_intervention="Monitor")
+    checklist = build_checklist(facts, derived_reviewer_requirements())
+    dashboard = build_rag_dashboard(checklist, facts)
+    similarity = {
+        "query": {"primary_terms": ["Remote monitor"], "secondary_terms": []},
+        "results": [],
+    }
+
+    rendered_sections = [
+        report_renderer.render_main_case_summary(facts, dashboard, ""),
+        report_renderer.render_checklist_report_summary(checklist, facts),
+        report_renderer.render_rag_dashboard_summary(dashboard),
+        report_renderer.render_similarity_check_summary(similarity),
+        report_renderer.render_priority_missing_evidence(checklist, dashboard, facts),
+        report_renderer.render_executive_review_note(facts, dashboard, ""),
+    ]
+
+    for section in rendered_sections:
+        assert "```" not in section
+        assert not any(line.startswith(("    ", "\t")) for line in section.splitlines() if line)
+        assert "## " in section

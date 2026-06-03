@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import textwrap
 from collections import Counter
 from dataclasses import asdict, is_dataclass
 from typing import Any
@@ -26,6 +27,35 @@ class TableRow(dict):
 # General safe access / cleaning helpers
 # ---------------------------------------------------------------------
 
+
+
+def clean_markdown_output(markdown: str) -> str:
+    if markdown is None:
+        return ""
+
+    text = str(markdown)
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = text.replace("```markdown", "").replace("```", "")
+    text = textwrap.dedent(text).strip()
+
+    cleaned_lines = []
+    for line in text.splitlines():
+        line = line.replace("\t", " ")
+        line = line.rstrip()
+
+        # Critical: remove leading indentation from all normal Markdown lines.
+        # Four leading spaces make Markdown render as a code block.
+        if line.startswith("    ") or line.startswith("  "):
+            line = line.lstrip()
+
+        cleaned_lines.append(line)
+
+    text = "\n".join(cleaned_lines)
+
+    # Remove accidental large blank sections.
+    text = re.sub(r"\n{3,}", "\n\n", text)
+
+    return text.strip()
 
 def _get(obj: Any, key: str, default: Any = None) -> Any:
     """Safely read a value from a dict, dataclass, pydantic-style model or object."""
@@ -453,7 +483,7 @@ def render_main_case_summary(
     risk_rows = [row for row in dashboard or [] if str(row.get("RAG", "")).upper() in {"RED", "AMBER", "GREY"}]
     top_actions = _dedupe_keep_order([row.get("Priority action", "") for row in risk_rows])[:5]
 
-    return f"""# Summary of key information extracted
+    return clean_markdown_output(f"""# Summary of key information extracted
 
     ## Project at a glance
 
@@ -501,7 +531,7 @@ def render_main_case_summary(
     **Top adviser actions**
 
     {_lines(top_actions)}
-    """
+    """)
 
 
 def render_summary(
@@ -551,7 +581,7 @@ def render_checklist_report_summary(
 
     missing_actions = _top_actions_from_items(items, {"RED", "AMBER"}, 5)
 
-    return f"""## Summary of key information extracted
+    return clean_markdown_output(f"""## Summary of key information extracted
 
     - **Checklist row counts:** GREEN {counts["GREEN"]}, AMBER {counts["AMBER"]}, RED {counts["RED"]}, GREY {counts["GREY"]}.
     - **Strongest evidenced areas:** {", ".join(strongest[:6]) if strongest else "None identified from available evidence."}
@@ -566,7 +596,7 @@ def render_checklist_report_summary(
     Built-in NIHR/RSS guidance is used as checklist guidance only. It is not treated as application evidence.
 
     Detailed row-level evidence is shown in the table below.
-    """
+    """)
 
 
 # ---------------------------------------------------------------------
@@ -598,7 +628,7 @@ def render_rag_dashboard_summary(dashboard: list[dict]) -> str:
         if len(actions) >= 3:
             break
 
-    return f"""## Summary of key information extracted
+    return clean_markdown_output(f"""## Summary of key information extracted
 
     ### Overall risk profile
 
@@ -619,7 +649,7 @@ def render_rag_dashboard_summary(dashboard: list[dict]) -> str:
     ### Top adviser actions
 
     {_lines(actions[:3])}
-    """
+    """)
 
 
 # ---------------------------------------------------------------------
@@ -733,7 +763,7 @@ def render_similarity_check_summary(similarity: dict) -> str:
         for error in errors
     ]
 
-    return f"""## Summary of key information extracted
+    return clean_markdown_output(f"""## Summary of key information extracted
 
     ### Query basis
 
@@ -753,7 +783,7 @@ def render_similarity_check_summary(similarity: dict) -> str:
     Similarity checking is an initial screening signal only. It does not prove novelty or duplication. Any potentially related records should be reviewed manually before drawing conclusions.
 
     Full application text, long sentence fragments and generic document labels should not be sent externally.
-    """
+    """)
 
 
 # ---------------------------------------------------------------------
@@ -815,7 +845,7 @@ def render_priority_missing_evidence(
     def action_lines(entries: list[Any]) -> str:
         return _lines([_action(entry) for entry in entries])
 
-    return f"""# Priority Missing Evidence
+    return clean_markdown_output(f"""# Priority Missing Evidence
 
     ## Summary of key information extracted
 
@@ -840,7 +870,7 @@ def render_priority_missing_evidence(
     ## Budget/finance checks still needed
 
     {action_lines(budget)}
-    """
+    """)
 
 
 # ---------------------------------------------------------------------
@@ -874,7 +904,7 @@ def render_executive_review_note(
         f"- **RSS adviser should check first:** {clean_display_value(first_action, max_chars=220)}.",
     ]
 
-    return "## Executive review note\n\n" + "\n".join(bullets[:8])
+    return clean_markdown_output("## Executive review note\n\n" + "\n".join(bullets[:8]))
 
 
 # ---------------------------------------------------------------------
