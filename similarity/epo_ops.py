@@ -71,8 +71,68 @@ def _clean_epo_term(term: str) -> str:
     return cleaned
 
 
+def _is_patent_identifier(term: str) -> bool:
+    return bool(re.search(r"\b(?:US|EP|WO)\s?\d{6,}[A-Z0-9]*\b", term, re.I))
+
+
+def _patent_number_for_cql(term: str) -> str:
+    cleaned = re.sub(r"\s+", "", term.upper())
+    cleaned = re.sub(r"(A\d|B\d|U\d)$", "", cleaned)
+    return cleaned
+
+
+
+
+def _is_epo_technical_or_function_term(term: str) -> bool:
+    key = normalise(term)
+    return any(x in key for x in [
+        "woubot",
+        "woucare-ai",
+        "woundwise-ai",
+        "woundwise",
+        "wound image segmentation",
+        "wound healing prediction",
+        "wound deterioration detection",
+        "wound care recommendation",
+        "personalised wound care",
+        "personalized wound care",
+        "wound pixels",
+        "non-wound pixels",
+        "thermal imaging",
+        "temperature condition index",
+        "multispectral wound imaging",
+        "wound imaging device",
+        "multispectral imaging device",
+        "neural network wound",
+        "image-based wound assessment",
+        "wound assessment",
+        "risk categorisation",
+        "risk categorization",
+        "screening frequency recommendation",
+        "escalation decision support",
+    ])
+
+
+def _is_epo_clinical_condition_term(term: str) -> bool:
+    key = normalise(term)
+    return any(x in key for x in [
+        "diabetic foot ulcer",
+        "venous leg ulcer",
+        "chronic wound",
+        "chronic lower-limb wound",
+        "lower-limb wound",
+        "pressure ulcer",
+        "wounds",
+    ])
+
+
+def _ta(term: str) -> str:
+    return f'ta="{term.replace(chr(34), "")}"'
+
 def _is_safe_epo_term(term: str) -> bool:
     cleaned = _clean_epo_term(term)
+    if _is_patent_identifier(cleaned):
+        return True
     key = normalise(cleaned)
     if not cleaned or is_generic_term(cleaned) or key in EPO_GENERIC_TERMS:
         return False
@@ -89,7 +149,7 @@ def _is_safe_epo_term(term: str) -> bool:
     return True
 
 def build_epo_cql_query(terms: list[str] | str, *, max_terms: int = 4, quote_first: bool = True) -> str:
-    """Build a short EPO OPS CQL query from safe patent-relevant terms only."""
+    """Build a high-precision EPO OPS CQL query from safe patent-relevant terms only."""
     selected: list[str] = []
     seen: set[str] = set()
     for raw in _terms_from_query(terms):
@@ -97,6 +157,8 @@ def build_epo_cql_query(terms: list[str] | str, *, max_terms: int = 4, quote_fir
         key = normalise(term)
         if not _is_safe_epo_term(term) or key in seen:
             continue
+        if _is_patent_identifier(term):
+            return f"pn={_patent_number_for_cql(term)}"
         selected.append(term)
         seen.add(key)
         if len(selected) >= max_terms:
@@ -104,14 +166,15 @@ def build_epo_cql_query(terms: list[str] | str, *, max_terms: int = 4, quote_fir
     if not selected:
         return ""
 
-    parts: list[str] = []
-    for idx, term in enumerate(selected):
-        if not quote_first and idx == 0 and re.match(r"^[A-Za-z0-9-]+$", term):
-            parts.append(f"ta={term}")
-        else:
-            escaped = term.replace('"', "")
-            parts.append(f'ta="{escaped}"')
-    return " or ".join(parts)
+    invention_terms = [term for term in selected if _is_epo_technical_or_function_term(term)]
+    condition_terms = [term for term in selected if _is_epo_clinical_condition_term(term)]
+    if not invention_terms:
+        return ""
+
+    primary = invention_terms[0]
+    if condition_terms and normalise(condition_terms[0]) != normalise(primary):
+        return f"{_ta(primary)} and {_ta(condition_terms[0])}"
+    return _ta(primary)
 
 
 
@@ -220,6 +283,9 @@ def parse_epo_metadata(text: str) -> dict[str, Any]:
     parsed["metadata_text"] = " ".join([
         str(parsed.get("title", "")),
         str(parsed.get("abstract", "")),
+        " ".join(parsed.get("doc_numbers", []) or []),
+        str(parsed.get("country", "")),
+        str(parsed.get("kind", "")),
         " ".join(parsed.get("applicants", []) or []),
     ]).strip()
     return parsed
