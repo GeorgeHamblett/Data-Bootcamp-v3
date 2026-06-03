@@ -155,7 +155,7 @@ def _sentence_safe_trim(value: Any, max_chars: int = 180) -> str:
         return text
 
     cut = text[:max_chars].rsplit(" ", 1)[0].strip()
-    return cut.rstrip(" ,;:") + "..."
+    return cut.rstrip(" ,;:") + "…"
 
 
 def _remove_repeated_comma_terms(text: str) -> str:
@@ -434,6 +434,10 @@ def render_main_case_summary(
     trl = _safe(_get(facts, "trl_evidence"))
     duration = _safe(_get(facts, "duration_months"))
     duration_text = f"{duration} months" if duration.isdigit() else duration
+    milestones = _dedupe_keep_order(_get(facts, "milestones", []) or [])
+    month_milestones = [milestone for milestone in milestones if re.search(r"\bMonth\s+\d+", str(milestone), re.I)]
+    if month_milestones:
+        duration_text = f"{duration_text} (latest extracted milestone: {month_milestones[-1]})"
 
     endpoints = _dedupe_keep_order(_get(facts, "endpoints", []) or [])[:10]
     endpoints_text = ", ".join(endpoints) if endpoints else NOT_EXPLICITLY_STATED
@@ -451,7 +455,7 @@ def render_main_case_summary(
 
     return f"""# Summary of key information extracted
 
-    ## 1. Project at a glance
+    ## Project at a glance
 
     - **Project title:** {_safe(project_title)}
     - **Claimed funding call:** {_safe(claimed_call)}
@@ -462,9 +466,11 @@ def render_main_case_summary(
     - **Clinical or care need:** {clinical_need}
     - **Setting:** {setting}
 
+    The setting is {setting}.
+
     The summary is based on the runtime application and supporting documents only. Built-in NIHR/RSS guidance is used as checklist guidance, not as application evidence.
 
-    ## 2. Proposed evidence generation
+    ## Proposed evidence generation
 
     - **Design:** {study_design}
     - **Sample size:** {sample_size}
@@ -475,7 +481,7 @@ def render_main_case_summary(
 
     The extracted evidence is used only where it directly matches the requirement being checked. For example, duration or outcome evidence is not reused to satisfy unrelated applicant, finance or eligibility requirements.
 
-    ## 3. Adoption and delivery readiness
+    ## Adoption and delivery readiness
 
     - **Regulatory/adoption evidence:** {regulatory}
     - **Health economics evidence:** {health_econ}
@@ -486,7 +492,7 @@ def render_main_case_summary(
 
     Finance is considered separately from health economics. Economic modelling, EQ-5D/QALY or cost-effectiveness wording supports health economics, while Finance requires actual budget, cost-category, rate, cap, AcoRD, SoECAT or cost-justification evidence.
 
-    ## 4. Main RSS checklist risks
+    ## Main RSS checklist risks
 
     - **GREEN areas:** {", ".join(groups["GREEN"]) if groups["GREEN"] else "None identified from available evidence."}
     - **AMBER areas:** {", ".join(groups["AMBER"]) if groups["AMBER"] else "None identified from available evidence."}
@@ -594,7 +600,7 @@ def render_rag_dashboard_summary(dashboard: list[dict]) -> str:
 
     return f"""## Summary of key information extracted
 
-    ### Overall position
+    ### Overall risk profile
 
     The dashboard suggests a **{profile}** application profile. It summarises the detailed checklist into seven RSS risk areas.
 
@@ -679,12 +685,6 @@ def _query_terms_from_similarity(similarity: dict) -> list[str]:
             break
 
     return cleaned
-
-
-def similarity_query_terms_display(terms: list[str]) -> str:
-    """Return cleaned similarity query terms for captions and disabled-result rows."""
-    cleaned = _clean_similarity_terms(terms)
-    return ", ".join(cleaned) if cleaned else NOT_EXPLICITLY_STATED
 
 
 def similarity_query_terms_display(terms: list[str]) -> str:
@@ -911,7 +911,7 @@ def clean_table_evidence(
 
     words = cleaned.split()
     if len(words) > max_words:
-        cleaned = " ".join(words[:max_words]).rstrip(" ,;:") + "..."
+        cleaned = " ".join(words[:max_words]).rstrip(" ,;:") + "…"
 
     return cleaned
 
@@ -1048,6 +1048,7 @@ EXPECTED_RENDERER_FUNCTIONS = (
     "render_executive_review_note",
     "render_table_display_dataframe",
     "render_raw_json_note",
+    "similarity_query_terms_display",
 )
 
 __all__ = (
