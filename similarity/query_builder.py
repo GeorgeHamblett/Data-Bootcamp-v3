@@ -2,17 +2,12 @@
 from __future__ import annotations
 
 import re
+from similarity.identifiers import extract_identifiers, is_any_identifier, is_patent_identifier, is_nihr_identifier, is_trial_identifier, normalise_identifier
 from schemas import ApplicationFacts, NOT_EXPLICITLY_STATED, SimilarityQuery
 
 MAX_QUERY_TERMS = 10
 MAX_TERM_CHARS = 60
 
-IDENTIFIER_PATTERNS = (
-    r"\b(?:US|EP|WO)\s?\d{6,}[A-Z0-9]*\b",
-    r"\bAI[_\-\s]?AWARD\d{3,}\b",
-    r"\bNIHR\d{4,}\b",
-    r"\b[A-Z]{2,}[_-][A-Z0-9]{3,}\b",
-)
 
 GENERIC_DOCUMENT_TERMS = {
     "the", "a", "an", "it", "this", "we", "our", "early", "earlier", "new", "novel", "current", "clear", "named",
@@ -21,9 +16,15 @@ GENERIC_DOCUMENT_TERMS = {
     "project", "research", "study", "objective", "aim", "funding", "proposal", "applicant", "partners", "partner",
     "draft", "report", "template", "playbook", "guidance", "work", "package", "task", "month", "milestones",
     "milestone", "recruitment", "retention", "fidelity", "interviews", "reduc", "reduce", "avoidable", "patients", "people", "adults",
-    "older adults", "community", "nhs", "rehabilitation", "detection", "support", "device", "platform", "system",
+    "older adults", "community", "nhs", "nhs england", "nice", "nice-aligned", "regulatory", "system", "knowledge", "knowledge mobilisation",
+    "dissemination", "impact", "health economics", "economic model", "budget", "budget impact", "cost effectiveness",
+    "cost utility", "qaly", "icer", "roi", "value for money", "aims", "objectives", "rationale",
+    "project management", "risk register", "ppie", "patient and public involvement", "research inclusion",
+    "plain english summary", "adoption pathway", "commercialisation strategy", "grant requested", "scheme cap",
+    "acord", "soecat", "trl", "technology readiness level", "regulatory readiness", "ukca", "iso 13485",
+    "iso 14971", "clinical validation needs", "implementation readiness", "comparator", "current best practice", "decision-tree modelling", "sensitivity analysis", "iec 62304 documentation", "equality impact summaries", "north pennine nhs trust", "intervention",
     "endpoint", "endpoints", "primary endpoint", "secondary endpoint", "outcome", "outcomes",
-    "related incidents", "12-month decision model", "decision model", "cost model", "decision-support",
+    "related incidents", "12-month decision model", "decision model", "cost model",
     "for training use only", "fictional example application", "training use only",
 }
 
@@ -31,13 +32,32 @@ NOISE_PHRASES = [
     "for training use only", "fictional example application", "training use only", "dummy application",
     "this project will", "many people do", "falls can seriously", "milestones month",
 ]
-GENERIC_ACRONYMS = {"SUS", "PPI", "PPIE", "NHS", "NIHR", "QALY", "EQ-5D", "EQ-5D-5L", "PDA"}
+GENERIC_ACRONYMS = {"SUS", "PPI", "PPIE", "NHS", "NIHR", "QALY", "EQ-5D", "EQ-5D-5L", "PDA", "IEC", "IRAS", "ISO", "MHRA", "PSS"}
 VALID_SHORT_ACRONYMS = {"AI", "IP", "ECG"}
 TECH_SUFFIXES = (
-    "imaging", "assessment", "engine", "algorithm", "platform", "software", "device", "sensor", "model",
-    "decision support", "therapeutic", "monitoring", "measurement", "classifier", "segmentation", "pixels",
+    "assessment", "monitoring", "prediction", "detection", "diagnosis", "triage", "classification",
+    "stratification", "risk score", "risk model", "decision support", "feedback", "coaching",
+    "rehabilitation", "intervention", "pathway", "assay", "biomarker", "imaging", "sensor",
+    "sensors", "wearable", "therapeutic", "diagnostic", "algorithm", "model", "classifier",
+    "platform", "device", "software", "training package", "behaviour-change programme",
+    "self-management programme", "implementation package", "clinical pathway", "care pathway",
+    "remote monitoring", "point-of-care test", "engine", "analysis", "planning", "support",
 )
-FUNCTION_SUFFIXES = ("detection", "prediction", "monitoring", "prevention", "rehabilitation", "risk score", "feedback", "coaching", "escalation", "assessment", "measurement", "decision support", "segmentation", "pixels", "care", "recommendation")
+FUNCTION_SUFFIXES = (
+    "fall prevention", "prevention", "rehabilitation", "detection", "diagnosis", "triage", "prioritisation",
+    "remote monitoring", "symptom management", "medication optimisation", "care coordination",
+    "adherence support", "risk scoring", "personalised feedback", "personalized feedback",
+    "referral decision support", "decision support", "feedback", "coaching", "escalation", "assessment",
+    "measurement", "care planning", "transitional support",
+)
+NAMED_TECHNICAL_METHODS = (
+    "Hidden Markov Models", "Hidden Markov Model", "convolutional neural network",
+    "deep convolutional neural network classifier", "random forest", "transformer model", "SHAP", "LIME",
+    "PCR", "ELISA", "mass spectrometry", "ultrasound", "MRI", "CT", "thermal imaging",
+    "multispectral imaging", "motion analysis", "inertial measurement unit", "accelerometer", "gyroscope",
+    "motion quality assessment engine", "wearable digital therapeutic", "movement quality assessment", "wearable sensors", "multiplex biomarker panel", "biomarker panel", "point-of-care test", "care pathway redesign",
+    "intervention mapping", "mixed-methods implementation evaluation", "randomised feasibility trial",
+)
 
 
 def normalise(term: str) -> str:
@@ -45,26 +65,15 @@ def normalise(term: str) -> str:
 
 
 def _canonical_identifier(value: str) -> str:
-    item = re.sub(r"\s+", "", value.strip()) if re.match(r"^(?:US|EP|WO)\s?\d", value.strip(), re.I) else value.strip()
-    item = re.sub(r"AI[_\-\s]?AWARD", "AI_AWARD", item, flags=re.I)
-    return item.upper() if re.search(r"^(?:US|EP|WO|AI_|NIHR|[A-Z]{2,}[_-])", item, re.I) else item
+    return normalise_identifier(value)
 
 
 def _identifier_phrases(value: str) -> list[str]:
-    phrases: list[str] = []
-    for idx, pattern in enumerate(IDENTIFIER_PATTERNS):
-        flags = 0 if idx == len(IDENTIFIER_PATTERNS) - 1 else re.I
-        for match in re.finditer(pattern, str(value or ""), flags):
-            phrases.append(_canonical_identifier(match.group(0)))
-    return list(dict.fromkeys(phrases))
+    return extract_identifiers(value)
 
 
 def _looks_like_identifier(value: str) -> bool:
-    cleaned = _clean(value) if "_clean" in globals() else str(value or "").strip()
-    return any(
-        re.fullmatch(pattern, cleaned, 0 if idx == len(IDENTIFIER_PATTERNS) - 1 else re.I)
-        for idx, pattern in enumerate(IDENTIFIER_PATTERNS)
-    )
+    return is_any_identifier(_clean(value) if "_clean" in globals() else value)
 
 
 def is_generic_term(term: str) -> bool:
@@ -109,9 +118,18 @@ def _recognised_product_or_acronym(value: str) -> bool:
 
 def _looks_like_sentence_fragment(value: str) -> bool:
     key = normalise(value)
-    if len(str(value).split()) > 4:
+    words = key.split()
+    if is_any_identifier(value):
+        return False
+    technical_markers = tuple(normalise(x) for x in TECH_SUFFIXES + FUNCTION_SUFFIXES + NAMED_TECHNICAL_METHODS)
+    if any(marker and marker in key for marker in technical_markers):
+        return False
+    if len(words) > 5:
         return True
-    if re.search(r"\b(is|are|was|were|will|would|could|should|consume|create|reduce|reduced|improve|support|needs|needed|designed|including)\b", key):
+    if re.search(
+        r"\b(their|his|her|our|your|is|are|was|were|will|would|could|should|consume|consuming|create|creating|reduce|reducing|improve|improving|support|supporting|needs|needed|designed|including|capacity|burden|pressure|adoption|implementation)\b",
+        key,
+    ):
         return True
     return False
 
@@ -139,7 +157,7 @@ def _valid_query_concept(value: str) -> bool:
         return False
     if any(blocked in key for blocked in ["software as a medical device", "medical device", "technology readiness", "quality management system", "technical file", "iso 13485", "iso 14971", "ukca"]):
         return False
-    if " and " in key or " including " in key or " substantial patient burden" in key or "create substantial" in key:
+    if _looks_like_sentence_fragment(value) or " and " in key or " including " in key or " substantial patient burden" in key or "create substantial" in key:
         return False
     if key.endswith(" diabetic"):
         return False
@@ -151,7 +169,9 @@ def _valid_query_concept(value: str) -> bool:
         return False
     if re.search(r"\b[a-z]{1,3}$", value) and not re.search(r"\b(?:AI|IP|ECG|CJD)$", value):
         return False
-    if key.split()[0] in {"and", "or", "for", "with", "plus", "the", "a", "an", "as", "reduce", "to", "including", "include", "includes", "create"}:
+    if re.search(r"\b(cost|costing|utility|economic|economics|mhra|nice|nihr|comparator|current best practice|plain-language|advice|award)\b", key):
+        return False
+    if key.split()[0] in {"and", "or", "for", "with", "plus", "the", "a", "an", "as", "reduce", "to", "including", "include", "includes", "create", "lead"}:
         return False
     if key.split()[-1] in {"and", "or", "for", "with", "of", "plus"}:
         return False
@@ -173,12 +193,12 @@ def _dedupe_add(candidates: list[str], value: str) -> None:
             continue
         useful_suffix = any(key.endswith(normalise(suffix)) for suffix in TECH_SUFFIXES + FUNCTION_SUFFIXES)
         if key in existing_key and len(key.split()) > 1:
-            if useful_suffix and len(key.split()) <= len(existing_key.split()):
+            if useful_suffix and len(key.split()) >= len(existing_key.split()):
                 candidates[idx] = value
             return
         if existing_key in key and len(existing_key.split()) > 1:
             existing_useful = any(existing_key.endswith(normalise(suffix)) for suffix in TECH_SUFFIXES + FUNCTION_SUFFIXES)
-            if not existing_useful or len(key.split()) < len(existing_key.split()):
+            if useful_suffix or (not existing_useful and len(key.split()) > len(existing_key.split())):
                 candidates[idx] = value
             return
     candidates.append(value)
@@ -198,17 +218,13 @@ def _suffix_phrases(value: str, suffixes: tuple[str, ...]) -> list[str]:
     return phrases
 
 
-def _wound_specific_invention_phrases(value: str) -> list[str]:
-    patterns = (
-        r"wound\s+healing\s+prediction",
-        r"wound\s+image\s+segmentation",
-        r"non-wound\s+pixels",
-        r"wound\s+pixels",
-        r"personali[sz]ed\s+wound\s+care",
-        r"wound\s+care\s+recommendation",
-        r"wound\s+deterioration\s+detection",
+def _named_method_phrases(value: str) -> list[str]:
+    patterns = tuple(re.escape(term).replace(r"\ ", r"\s+") for term in NAMED_TECHNICAL_METHODS) + (
+        r"[A-Za-z0-9+#-]+\s+deterioration\s+detection",
+        r"[A-Za-z0-9+#-]+\s+image\s+segmentation",
+        r"personali[sz]ed\s+[A-Za-z0-9+#-]+\s+care",
+        r"[A-Za-z0-9+#-]+\s+care\s+recommendation",
         r"temperature\s+condition\s+index",
-        r"thermal\s+imaging",
     )
     phrases: list[str] = []
     for pattern in patterns:
@@ -219,16 +235,10 @@ def _wound_specific_invention_phrases(value: str) -> list[str]:
 
 def _clinical_problem_phrases(value: str) -> list[str]:
     phrases: list[str] = []
-    wound_anchors = (
-        r"chronic\s+(?:lower-limb\s+)?wounds?",
-        r"lower-limb\s+wounds?",
-        r"venous\s+leg\s+ulcers?",
-        r"diabetic\s+foot\s+ulcers?",
-    )
-    for pattern in wound_anchors:
-        for m in re.finditer(rf"\b{pattern}\b", value, re.I):
-            phrases.append(m.group(0).strip(" .;:,/-"))
-    hints = "deterioration|risk|prevention|rehabilitation|assessment|disease|condition|wounds?|ulcers?|falls?|balance|mobility"
+    hints = "deterioration|risk|prevention|rehabilitation|assessment|disease|condition|wounds?|ulcers?|falls?|fall|balance|mobility|decline|diagnosis|infection|inequality|burden|discharge|sepsis|triage"
+    for explicit in ("fall prevention", "falls prevention", "mobility rehabilitation", "sepsis triage"):
+        for m0 in re.finditer(rf"\b{explicit}\b", value, re.I):
+            phrases.append(m0.group(0).strip(" .;:,/-"))
     for m in re.finditer(rf"\b(?:[A-Za-z0-9+#-]+\s+){{0,3}}(?:{hints})(?:\s+[A-Za-z0-9+#-]+){{0,2}}\b", value, re.I):
         phrase = m.group(0).strip(" .;:,/-")
         if 2 <= len(phrase.split()) <= 5:
@@ -238,11 +248,13 @@ def _clinical_problem_phrases(value: str) -> list[str]:
 
 def _capitalised_or_acronym_phrases(value: str) -> list[str]:
     phrases: list[str] = []
-    for m in re.finditer(r"\b[A-Z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)+\b|\b[A-Z][A-Z0-9]{2,12}\b", value):
+    for m in re.finditer(r"\b[A-Z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)+\b|\b[A-Z][A-Z0-9]{2,12}\b|\b[A-Z][a-z]+[A-Z][A-Za-z0-9]*\b", value):
         phrases.append(m.group(0))
-    if len(value.split()) <= 6:
-        for m in re.finditer(r"\b[A-Z][a-z][A-Za-z0-9]{2,20}\b", value):
-            phrases.append(m.group(0))
+    if len(value.split()) <= 20:
+        for m in re.finditer(r"\b[A-Z][a-z][A-Za-z0-9]{2,20}(?:\s+[A-Z][a-z][A-Za-z0-9]{2,20}){0,4}\b", value):
+            phrase = m.group(0)
+            if len(phrase.split()) > 1 or not _sentence_like(phrase):
+                phrases.append(phrase)
     return phrases
 
 
@@ -254,9 +266,9 @@ def _concepts_from_value(value: str) -> list[str]:
     identifiers = _identifier_phrases(value)
     for phrase in identifiers:
         _dedupe_add(concepts, phrase)
-    for phrase in _capitalised_or_acronym_phrases(value):
+    for phrase in _named_method_phrases(value):
         _dedupe_add(concepts, phrase)
-    for phrase in _wound_specific_invention_phrases(value):
+    for phrase in _capitalised_or_acronym_phrases(value):
         _dedupe_add(concepts, phrase)
     for m in re.finditer(r"\b[A-Za-z0-9+#-]*spectral\s+[A-Za-z0-9+#-]+\s+imaging\b", value, re.I):
         _dedupe_add(concepts, m.group(0))
@@ -277,28 +289,52 @@ def _concepts_from_value(value: str) -> list[str]:
 def _short_concepts_from_text(snippet: str) -> list[str]:
     snippet = _clean(snippet[:1500])
     concepts: list[str] = []
-    for phrase in _identifier_phrases(snippet) + _capitalised_or_acronym_phrases(snippet) + _suffix_phrases(snippet, TECH_SUFFIXES + FUNCTION_SUFFIXES):
+    for phrase in _identifier_phrases(snippet) + _capitalised_or_acronym_phrases(snippet) + _named_method_phrases(snippet) + _suffix_phrases(snippet, TECH_SUFFIXES + FUNCTION_SUFFIXES):
         _dedupe_add(concepts, phrase)
     return concepts[:5]
 
 
-def _term_priority(term: str) -> tuple[int, str]:
+def concept_class(term: str) -> str:
     key = normalise(term)
-    if re.fullmatch(r"\b(?:US|EP|WO)\s?\d{6,}[A-Z0-9]*\b", term, re.I):
-        return (0, key)
-    if re.fullmatch(r"\bAI[_\-\s]?AWARD\d{3,}\b", term, re.I):
-        return (1, key)
-    if re.fullmatch(r"\bNIHR\d{4,}\b", term, re.I):
-        return (2, key)
-    if key in {"woubot", "woucare-ai", "woucare ai", "woundwise-ai", "woundwise"}:
-        return (3, key)
-    invention_order = ["wound healing prediction", "wound image segmentation", "wound pixels", "non-wound pixels", "personalised wound care", "personalized wound care", "wound care recommendation", "wound deterioration detection", "thermal imaging", "temperature condition index", "multispectral wound imaging", "wound imaging device", "multispectral imaging device"]
-    for idx, marker in enumerate(invention_order):
-        if marker in key:
-            return (4, f"{idx:02d}-{key}")
-    if any(marker in key for marker in ["diabetic foot ulcer", "venous leg ulcer", "chronic lower-limb wound", "lower-limb wound", "chronic wound", "pressure ulcer"]):
-        return (5, key)
-    return (6, key)
+    if is_patent_identifier(term) or is_nihr_identifier(term) or is_trial_identifier(term):
+        return "exact_identifier"
+    if is_generic_term(term):
+        return "generic_document_terms"
+    if _recognised_product_or_acronym(term) or re.fullmatch(r"[A-Z][A-Za-z0-9]*(?:\s+[A-Z][A-Za-z0-9]+){1,4}", str(term).strip()):
+        return "named_entities"
+    if any(normalise(s) in key for s in FUNCTION_SUFFIXES):
+        return "product_or_intervention_function"
+    if any(normalise(method) in key for method in NAMED_TECHNICAL_METHODS) or any(key.endswith(normalise(s)) or normalise(s) in key for s in TECH_SUFFIXES):
+        if any(x in key for x in ["therapeutic", "programme", "program", "platform", "device", "test", "pathway", "package", "tool"]):
+            return "intervention_type"
+        return "technical_method_or_mechanism"
+    if any(h in key for h in ["risk", "decline", "wound", "ulcer", "stroke", "depression", "diagnosis", "infection", "inequality", "burden", "fall", "sepsis", "cancer", "discharge"]):
+        return "clinical_or_social_care_problem"
+    if any(h in key for h in ["older adults", "children", "care homes", "primary care", "emergency department", "community", "nhs", "social care"]):
+        return "population_setting"
+    return "named_entities" if _recognised_product_or_acronym(term) else "technical_method_or_mechanism"
+
+
+def _term_priority(term: str) -> tuple[int, str]:
+    class_order = {
+        "exact_identifier": 0,
+        "named_entities": 1,
+        "product_or_intervention_function": 2,
+        "technical_method_or_mechanism": 3,
+        "intervention_type": 4,
+        "clinical_or_social_care_problem": 5,
+        "population_setting": 6,
+        "generic_document_terms": 7,
+    }
+    if is_patent_identifier(term):
+        return (0, normalise(term))
+    if is_nihr_identifier(term):
+        return (1, normalise(term))
+    if is_trial_identifier(term):
+        return (2, normalise(term))
+    cls = concept_class(term)
+    boost = -2 if normalise(term) in {"fall prevention", "falls prevention", "mobility rehabilitation", "wearable digital therapeutic"} else (-1 if any(marker in normalise(term) for marker in ["imaging", "detection", "assessment", "therapeutic", "sensor", "classifier", "rehabilitation", "prevention", "pathway", "biomarker", "test"]) else 0)
+    return (class_order.get(cls, 8) + 3 + boost, normalise(term))
 
 
 def _prioritise_terms(terms: list[str]) -> list[str]:
@@ -330,13 +366,19 @@ def build_similarity_query(facts: ApplicationFacts, snippets: list[str] | None =
     secondary: list[str] = []
     for field in [
         "project_title",
+        "application_claimed_call",
         "product_or_intervention",
         "acronym_or_short_name",
         "technology_type",
+        "target_population",
         "clinical_or_social_care_need",
         "mechanism_of_action",
+        "methodology",
         "market_or_impact_evidence",
+        "regulatory_plan",
         "references_detected",
+        "health_economics_plan",
+        "next_stage_plan",
     ]:
         for concept in _concepts_from_value(str(getattr(facts, field, NOT_EXPLICITLY_STATED))):
             _dedupe_add(primary, concept)

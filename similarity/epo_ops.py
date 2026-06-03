@@ -8,7 +8,8 @@ import xml.etree.ElementTree as ET
 from typing import Any
 
 from settings import Settings, is_missing_credential
-from similarity.query_builder import normalise, is_generic_term
+from similarity.query_builder import normalise, is_generic_term, concept_class
+from similarity.identifiers import is_patent_identifier
 
 EPO_SOURCE = "EPO OPS"
 EPO_SEARCH_PATH = "/rest-services/published-data/search/biblio"
@@ -72,7 +73,7 @@ def _clean_epo_term(term: str) -> str:
 
 
 def _is_patent_identifier(term: str) -> bool:
-    return bool(re.search(r"\b(?:US|EP|WO)\s?\d{6,}[A-Z0-9]*\b", term, re.I))
+    return is_patent_identifier(term)
 
 
 def _patent_number_for_cql(term: str) -> str:
@@ -100,8 +101,15 @@ def _is_safe_epo_term(term: str) -> bool:
         return False
     return True
 
+def _ta(term: str) -> str:
+    escaped = term.replace('"', "")
+    if re.match(r"^[A-Za-z0-9-]+$", escaped):
+        return f"ta={escaped}"
+    return f'ta="{escaped}"'
+
+
 def build_epo_cql_query(terms: list[str] | str, *, max_terms: int = 4, quote_first: bool = True) -> str:
-    """Build a high-precision EPO OPS CQL query from safe patent-relevant terms only."""
+    """Build a high-precision, domain-agnostic EPO OPS CQL query from safe patent-relevant terms only."""
     selected: list[str] = []
     seen: set[str] = set()
     for raw in _terms_from_query(terms):
@@ -116,17 +124,19 @@ def build_epo_cql_query(terms: list[str] | str, *, max_terms: int = 4, quote_fir
     if not selected:
         return ""
 
-    parts: list[str] = []
-    for idx, term in enumerate(selected):
-        if _is_patent_identifier(term):
-            parts.append(f"pn={_patent_number_for_cql(term)}")
-        elif not quote_first and idx == 0 and re.match(r"^[A-Za-z0-9-]+$", term):
-            parts.append(f"ta={term}")
-        else:
-            escaped = term.replace('"', "")
-            parts.append(f'ta="{escaped}"')
-    return " or ".join(parts)
+    patent_ids = [term for term in selected if _is_patent_identifier(term)]
+    if patent_ids:
+        parts = [f"pn={_patent_number_for_cql(term)}" for term in patent_ids]
+        parts.extend(_ta(term) for term in selected if not _is_patent_identifier(term))
+        return " or ".join(parts[:max_terms])
 
+    named = [term for term in selected if concept_class(term) == "named_entities"]
+    strong = [term for term in selected if concept_class(term) in {"technical_method_or_mechanism", "product_or_intervention_function", "intervention_type"}]
+    if named:
+        return " or ".join(_ta(term) for term in (named[:3] or selected[:3]))
+    if len(strong) >= 2:
+        return " and ".join(_ta(term) for term in strong[:2])
+    return " and ".join(_ta(term) for term in selected[:2])
 
 
 def _text(elem: ET.Element) -> str:
