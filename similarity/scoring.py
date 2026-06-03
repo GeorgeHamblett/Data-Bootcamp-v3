@@ -30,13 +30,7 @@ def _dedupe(items: list[str]) -> list[str]:
 def _identifiers(text: str) -> set[str]:
     ids = set()
     for match in IDENTIFIER_RE.finditer(text or ""):
-        raw = match.group(0).upper()
-        if re.match(r"^(?:US|EP|WO)\s?\d", raw, re.I):
-            item = re.sub(r"\s+", "", raw)
-            ids.add(item)
-            ids.add(re.sub(r"(A\d|B\d|U\d)$", "", item))
-            continue
-        item = raw.replace(" ", "_")
+        item = match.group(0).upper().replace(" ", "_")
         item = re.sub(r"AI[_\-\s]?AWARD", "AI_AWARD", item, flags=re.I)
         ids.add(item)
     return ids
@@ -116,54 +110,6 @@ WOUND_SPECIFIC_METADATA_TERMS = (
     "wound-specific",
 )
 
-CLINICAL_CONDITION_CONCEPTS = {
-    "diabetic foot ulcers",
-    "diabetic foot ulcer",
-    "venous leg ulcers",
-    "venous leg ulcer",
-    "chronic lower-limb wounds",
-    "chronic wounds",
-    "lower-limb wounds",
-    "pressure ulcers",
-    "pressure wounds",
-    "surgical wounds",
-    "wounds",
-    "wound",
-}
-
-TECHNICAL_METHOD_CONCEPTS = {
-    "thermal imaging",
-    "wound image segmentation",
-    "wound healing prediction",
-    "temperature condition index",
-    "neural network wound analysis",
-    "wound pixels",
-    "non-wound pixels",
-    "image-based wound assessment",
-    "multispectral imaging",
-    "multispectral wound imaging",
-    "wound imaging",
-    "wound imaging device",
-    "mobile thermal camera",
-    "foot thermal scans",
-}
-
-PRODUCT_FUNCTION_CONCEPTS = {
-    "wound deterioration detection",
-    "wound care recommendation",
-    "personalised wound care",
-    "personalized wound care",
-    "risk categorisation",
-    "risk categorization",
-    "screening frequency recommendation",
-    "escalation decision support",
-    "detection",
-    "early diabetic foot ulcer detection",
-    "wound-specific decision support",
-    "clinical wound decision support",
-    "wound decision support",
-}
-
 
 def _has_wound_specific_metadata(text: str) -> bool:
     key = normalise(text)
@@ -197,22 +143,7 @@ INFRASTRUCTURE_CONCEPTS = {
 }
 
 DIMENSION_PHRASES = {
-    # Keep this literal rather than referencing CLINICAL_CONDITION_CONCEPTS so module import
-    # cannot fail if this mapping is moved during future edits.
-    "clinical_condition": {
-        "diabetic foot ulcers",
-        "diabetic foot ulcer",
-        "venous leg ulcers",
-        "venous leg ulcer",
-        "chronic lower-limb wounds",
-        "chronic wounds",
-        "lower-limb wounds",
-        "pressure ulcers",
-        "pressure wounds",
-        "surgical wounds",
-        "wounds",
-        "wound",
-    },
+    "clinical_condition": CLINICAL_CONDITION_CONCEPTS,
     "clinical_problem": {
         "wound deterioration",
         "chronic wounds",

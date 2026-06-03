@@ -24,12 +24,6 @@ GENERIC_DOCUMENT_TERMS = {
     "older adults", "community", "nhs", "rehabilitation", "detection", "support", "device", "platform", "system",
     "endpoint", "endpoints", "primary endpoint", "secondary endpoint", "outcome", "outcomes",
     "related incidents", "12-month decision model", "decision model", "cost model", "decision-support",
-    "trl", "technology readiness level", "technology readiness", "readiness level", "regulatory readiness",
-    "software as a medical device", "samd", "medical device", "device classification", "clinical safety",
-    "risk management file", "quality management system", "iso 13485", "iso 14971", "ukca", "ce marking", "iec 62304", "iec",
-    "post-market surveillance", "technical file", "technical documentation", "clinical validation needs",
-    "translational software", "translational product development", "create substantial patient burden",
-    "consume significant community nursing capacity", "reduced avoidable escalation", "better use of workforce capacity",
     "for training use only", "fictional example application", "training use only",
 }
 
@@ -37,7 +31,7 @@ NOISE_PHRASES = [
     "for training use only", "fictional example application", "training use only", "dummy application",
     "this project will", "many people do", "falls can seriously", "milestones month",
 ]
-GENERIC_ACRONYMS = {"SUS", "PPI", "PPIE", "NHS", "NIHR", "QALY", "EQ-5D", "EQ-5D-5L", "PDA", "TRL", "SAMD", "UKCA", "ISO", "IEC"}
+GENERIC_ACRONYMS = {"SUS", "PPI", "PPIE", "NHS", "NIHR", "QALY", "EQ-5D", "EQ-5D-5L", "PDA"}
 VALID_SHORT_ACRONYMS = {"AI", "IP", "ECG"}
 TECH_SUFFIXES = (
     "imaging", "assessment", "engine", "algorithm", "platform", "software", "device", "sensor", "model",
@@ -57,12 +51,12 @@ def _canonical_identifier(value: str) -> str:
 
 
 def _identifier_phrases(value: str) -> list[str]:
-    matches: list[tuple[int, str]] = []
+    phrases: list[str] = []
     for idx, pattern in enumerate(IDENTIFIER_PATTERNS):
         flags = 0 if idx == len(IDENTIFIER_PATTERNS) - 1 else re.I
         for match in re.finditer(pattern, str(value or ""), flags):
-            matches.append((match.start(), _canonical_identifier(match.group(0))))
-    return list(dict.fromkeys(phrase for _, phrase in sorted(matches, key=lambda item: item[0])))
+            phrases.append(_canonical_identifier(match.group(0)))
+    return list(dict.fromkeys(phrases))
 
 
 def _looks_like_identifier(value: str) -> bool:
@@ -143,15 +137,11 @@ def _valid_query_concept(value: str) -> bool:
         return False
     if _identifier_phrases(value) and not _looks_like_identifier(value):
         return False
-    if re.search(r"\btrl\s*\d*(?:\s+to\s+trl?\s*\d+)?\b", key):
-        return False
-    if any(blocked in key for blocked in ["software as a medical device", "medical device", "technology readiness", "regulatory readiness", "quality management system", "technical file", "clinical validation needs", "translational software", "translational product development", "risk management file", "post-market surveillance", "ce marking", "iso 13485", "iso 14971", "ukca"]):
-        return False
-    if _looks_like_sentence_fragment(value) and not _recognised_product_or_acronym(value):
+    if any(blocked in key for blocked in ["software as a medical device", "medical device", "technology readiness", "quality management system", "technical file", "iso 13485", "iso 14971", "ukca"]):
         return False
     if " and " in key or " including " in key or " substantial patient burden" in key or "create substantial" in key:
         return False
-    if key.endswith(" diabetic") or key.startswith("segmentation "):
+    if key.endswith(" diabetic"):
         return False
     if len(value) > MAX_TERM_CHARS or len(words) > 5:
         return False
@@ -180,8 +170,6 @@ def _dedupe_add(candidates: list[str], value: str) -> None:
         if key == existing_key:
             return
         if _looks_like_identifier(existing) or _looks_like_identifier(value):
-            continue
-        if key.replace("non-", "") == existing_key or existing_key.replace("non-", "") == key:
             continue
         useful_suffix = any(key.endswith(normalise(suffix)) for suffix in TECH_SUFFIXES + FUNCTION_SUFFIXES)
         if key in existing_key and len(key.split()) > 1:
@@ -289,7 +277,7 @@ def _concepts_from_value(value: str) -> list[str]:
 def _short_concepts_from_text(snippet: str) -> list[str]:
     snippet = _clean(snippet[:1500])
     concepts: list[str] = []
-    for phrase in _identifier_phrases(snippet) + _wound_specific_invention_phrases(snippet) + _capitalised_or_acronym_phrases(snippet) + _suffix_phrases(snippet, TECH_SUFFIXES + FUNCTION_SUFFIXES):
+    for phrase in _identifier_phrases(snippet) + _capitalised_or_acronym_phrases(snippet) + _suffix_phrases(snippet, TECH_SUFFIXES + FUNCTION_SUFFIXES):
         _dedupe_add(concepts, phrase)
     return concepts[:5]
 
@@ -347,15 +335,8 @@ def build_similarity_query(facts: ApplicationFacts, snippets: list[str] | None =
         "technology_type",
         "clinical_or_social_care_need",
         "mechanism_of_action",
-        "methodology",
-        "application_claimed_call",
         "market_or_impact_evidence",
-        "regulatory_plan",
         "references_detected",
-        "novelty_or_similarity_section",
-        "ip_commercialisation_section",
-        "commercialisation_section",
-        "ip_section",
     ]:
         for concept in _concepts_from_value(str(getattr(facts, field, NOT_EXPLICITLY_STATED))):
             _dedupe_add(primary, concept)

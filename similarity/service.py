@@ -7,6 +7,8 @@ from typing import Any
 from schemas import ApplicationFacts
 from settings import Settings
 from similarity.query_builder import build_similarity_query, normalise, is_generic_term
+from typing import Any
+
 from similarity.scoring import score_result
 from similarity.concepts import metadata_text
 from similarity.lens import search_lens
@@ -31,11 +33,6 @@ EPO_BLOCKED_TERMS = {
     "post-market surveillance",
     "technical file",
     "technical documentation",
-    "clinical validation needs",
-    "translational software",
-    "translational product development",
-    "risk management file",
-    "ce marking",
     "endpoint",
     "outcomes",
     "outcome",
@@ -56,67 +53,30 @@ def _is_nihr_identifier(term: str) -> bool:
     return bool(re.search(r"\bAI[_\-\s]?AWARD\d{3,}\b|\bNIHR\d{4,}\b", term, re.I))
 
 
-def _is_named_entity_epo_term(term: str) -> bool:
-    key = normalise(term)
-    return key in {"woubot", "woucare-ai", "woucare ai", "woundwise-ai", "woundwise"}
-
-
-def _is_epo_technical_or_function_term(term: str) -> bool:
+def _is_wound_specific_epo_term(term: str) -> bool:
     key = normalise(term)
     return any(x in key for x in [
-        "wound image segmentation",
-        "wound healing prediction",
-        "wound deterioration detection",
-        "wound care recommendation",
-        "personalised wound care",
-        "personalized wound care",
+        "woubot",
+        "wound",
+        "ulcer",
+        "diabetic foot",
+        "venous leg",
+        "healing prediction",
+        "image segmentation",
         "wound pixels",
         "non-wound pixels",
-        "thermal imaging",
-        "temperature condition index",
-        "multispectral wound imaging",
-        "wound imaging device",
-        "multispectral imaging device",
-        "neural network wound",
-        "image-based wound assessment",
+        "personalised wound care",
+        "personalized wound care",
+        "wound care recommendation",
         "wound assessment",
-        "risk categorisation",
-        "risk categorization",
-        "screening frequency recommendation",
-        "escalation decision support",
+        "wound deterioration",
     ])
-
-
-def _is_epo_clinical_condition_term(term: str) -> bool:
-    key = normalise(term)
-    return any(x in key for x in [
-        "diabetic foot ulcer",
-        "venous leg ulcer",
-        "chronic wound",
-        "chronic lower-limb wound",
-        "lower-limb wound",
-        "pressure ulcer",
-        "wounds",
-    ])
-
-
-def _is_epo_invention_anchor(term: str) -> bool:
-    return _is_patent_identifier(term) or _is_named_entity_epo_term(term) or _is_epo_technical_or_function_term(term)
 
 
 def _ordered_terms_for_source(source: str, primary: list[str], secondary: list[str]) -> list[str]:
     pool = primary if source == "EPO OPS" else primary + secondary
     if source == "EPO OPS":
-        return sorted(
-            pool,
-            key=lambda term: (
-                0 if _is_patent_identifier(term) else
-                1 if _is_named_entity_epo_term(term) else
-                2 if _is_epo_technical_or_function_term(term) else
-                3 if _is_epo_clinical_condition_term(term) else
-                4
-            ),
-        )
+        return sorted(pool, key=lambda term: (0 if _is_patent_identifier(term) else 1))
     if source == "NIHR Open Data":
         return sorted(pool, key=lambda term: (0 if _is_nihr_identifier(term) else 1 if _is_public_identifier(term) else 2))
     return pool
@@ -142,9 +102,7 @@ def _api_terms(source: str, primary: list[str], secondary: list[str]) -> list[st
         if source == "EPO OPS":
             if key in EPO_BLOCKED_TERMS or any(x in key for x in ["eq-5d", "berg", "timed up", "outcome", "recruitment", "retention", "usual care"]):
                 continue
-            if _is_patent_identifier(term):
-                return [term]
-            if not (_is_named_entity_epo_term(term) or _is_epo_technical_or_function_term(term) or _is_epo_clinical_condition_term(term)):
+            if not _is_patent_identifier(term) and not _is_wound_specific_epo_term(term):
                 continue
         if is_generic_term(term) and not _is_public_identifier(term):
             continue
@@ -200,55 +158,6 @@ def _metadata_for_scoring(result: dict) -> tuple[str, str]:
     return title, abstract
 
 
-def _candidate_title(candidate: dict[str, Any]) -> str:
-    return _join_raw_values(candidate, ("title", "project_title", "acronym")) or str(candidate.get("recordid", "") or "")
-
-
-def _score_candidate(candidate: dict[str, Any], terms: list[str], facts: ApplicationFacts) -> tuple[dict, str, str]:
-    title = _candidate_title(candidate)
-    abstract = _join_raw_values(
-        candidate,
-        (
-            "abstract",
-            "scientific_abstract",
-            "plain_english_abstract",
-            "snippet",
-            "description",
-            "metadata_text",
-            "programme",
-            "funding_stream",
-            "acronym",
-            "project_id",
-            "funding_and_awards_link",
-        ),
-    ) or metadata_text(title, "", candidate)
-    scored = score_result(terms, title, abstract, getattr(facts, "acronym_or_short_name", ""))
-    return scored, title, abstract
-
-
-def _best_scored_candidate(result: dict, terms: list[str], facts: ApplicationFacts) -> tuple[dict, str] | None:
-    candidates = [c for c in result.get("raw_candidates", []) if isinstance(c, dict)]
-    if not candidates:
-        return None
-    risk_rank = {"NONE": 0, "LOW": 1, "MEDIUM": 2, "HIGH": 3, "VERY_HIGH": 4}
-    best: tuple[dict, str] | None = None
-    best_key = (-1, -1.0)
-    for candidate in candidates:
-        scored, title, _abstract = _score_candidate(candidate, terms, facts)
-        key = (risk_rank.get(scored.get("risk", "NONE"), 0), float(scored.get("score", 0.0) or 0.0))
-        if key > best_key:
-            candidate_result = {
-                **result,
-                "top_match": title,
-                "raw": candidate,
-                "searched_term": candidate.get("searched_term", result.get("searched_term", "")),
-                "link_or_id": candidate.get("id") or candidate.get("recordid") or candidate.get("project_id") or candidate.get("funding_and_awards_link") or result.get("link_or_id", ""),
-            }
-            candidate_result.update(scored)
-            best = (candidate_result, title)
-            best_key = key
-    return best
-
 def run_similarity_service(facts: ApplicationFacts, settings: Settings, run_similarity_check: bool = False, mock_mode: bool = False, snippets: list[str] | None = None) -> dict:
     query = build_similarity_query(facts, snippets)
     terms = query.primary_terms + query.secondary_terms
@@ -269,9 +178,6 @@ def run_similarity_service(facts: ApplicationFacts, settings: Settings, run_simi
     raw_results = []
     for func, source in [(search_lens, "Lens Scholarly"), (search_epo, "EPO OPS"), (search_nihr_open_data, "NIHR Open Data")]:
         api_terms = _api_terms(source, query.primary_terms, query.secondary_terms)
-        if source == "EPO OPS" and api_terms and not any(_is_epo_invention_anchor(term) for term in api_terms):
-            raw_results.append(_not_run(source, "Only clinical condition/population terms were available for EPO; patent search skipped to avoid broad false positives.", api_terms))
-            continue
         if source == "EPO OPS" and not any(_is_patent_identifier(term) for term in api_terms) and len(api_terms) < 2:
             raw_results.append(_not_run(source, "EPO OPS requires a patent identifier or at least two wound-specific safe query terms after cleaning.", api_terms))
             continue
@@ -284,14 +190,9 @@ def run_similarity_service(facts: ApplicationFacts, settings: Settings, run_simi
         except Exception as exc:
             result = {"source": source, "status": "error", "matches_found": 0, "top_match": "", "score": 0.0, "risk": "NONE", "why_relevant": _clean_api_error(exc), "link_or_id": ""}
         raw_records = int(result.get("matches_found", 0) or 0)
-        best_candidate = _best_scored_candidate(result, terms, facts) if source == "NIHR Open Data" else None
-        if best_candidate:
-            result, title = best_candidate
-            scored = {key: result[key] for key in ["score", "risk", "similarity_type", "matched_concepts", "specific_matched_concepts", "generic_matched_concepts", "matched_dimensions", "why_relevant"]}
-        else:
-            title, abstract = _metadata_for_scoring(result)
-            scored = score_result(terms, title, abstract, getattr(facts, "acronym_or_short_name", ""))
-            result.update(scored)
+        title, abstract = _metadata_for_scoring(result)
+        scored = score_result(terms, title, abstract, getattr(facts, "acronym_or_short_name", ""))
+        result.update(scored)
         result["raw_records_returned"] = raw_records
         result["matches_found"] = 1 if scored["score"] > 0 and scored["risk"] != "NONE" else 0
         if result["matches_found"] == 0:
