@@ -65,10 +65,6 @@ class Settings:
         _load_dotenv()
         legacy_local_only = as_bool(os.getenv("LOCAL_ONLY_MODE"), False)
         strict_local_only = as_bool(os.getenv("STRICT_LOCAL_ONLY_MODE"), legacy_local_only)
-        legacy_epo_base = os.getenv("EPO_OPS_BASE_URL", cls.epo_ops_service_base_url).rstrip("/")
-        if legacy_epo_base.endswith("/3.2"):
-            legacy_epo_base = legacy_epo_base[:-4]
-        epo_service_base = os.getenv("EPO_OPS_SERVICE_BASE_URL", legacy_epo_base).rstrip("/")
         return cls(
             ollama_base_url=os.getenv("OLLAMA_BASE_URL", cls.ollama_base_url),
             ollama_model=os.getenv("OLLAMA_MODEL", cls.ollama_model),
