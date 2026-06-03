@@ -16,11 +16,16 @@ NOISE_PATTERNS = [
     r"FOR\s+TRAINING\s+USE\s+ONLY",
     r"TRAINING\s+USE\s+ONLY",
     r"FICTIONAL\s+EXAMPLE\s+APPLICATION",
+    r"SYNTHETIC\s+EXEMPLAR",
     r"DUMMY\s+APPLICATION",
+    r"\b(?:fictional|invented|training only|dummy)\b",
 ]
 
+PRODUCT_STOPWORDS = {"the", "a", "an", "it", "this", "we"}
+DISCLAIMER_RE = re.compile(r"\b(?:fictional|invented|training only|synthetic exemplar|dummy)\b", re.I)
+
 FIELD_PATTERNS = {
-    "product_or_intervention": [r"(?:product|intervention|innovation|service|device|software|programme|program|model|method)\s*[:\-]\s*(.+)"],
+    "product_or_intervention": [r"(?:intervention\s*/\s*product|product\s*/\s*intervention|product|intervention|innovation|service|device|software|programme|program|model|method)\s*[:\-]\s*(.+)"],
     "acronym_or_short_name": [r"(?:acronym|short\s+name|module)\s*[:\-]\s*(.+)"],
     "target_population": [r"(?:target\s+population|population)\s*[:\-]\s*(.+)"],
     "clinical_or_social_care_need": [r"(?:clinical\s+need|social\s+care\s+need|need|problem)\s*(?:is|are|[:\-])\s*(.+)"],
@@ -73,7 +78,11 @@ def _clean_text(text: str) -> str:
 
 
 def _short(value: str, limit: int = 260) -> str:
-    return re.sub(r"\s+", " ", value).strip(" .;:\n\t")[:limit].rstrip()
+    cleaned = re.sub(r"\s+", " ", value).strip(" .;:\n\t")
+    if len(cleaned) <= limit:
+        return cleaned
+    truncated = cleaned[:limit].rsplit(" ", 1)[0].strip(" .;:\n\t")
+    return truncated or cleaned[:limit].rstrip()
 
 
 def _sentences(text: str) -> list[str]:
@@ -93,6 +102,15 @@ def _find_first(text: str, patterns: list[str]) -> tuple[str, str] | None:
 
 def _is_noise(value: str) -> bool:
     return any(re.search(p, value, re.I) for p in NOISE_PATTERNS)
+
+
+def _is_disclaimer(value: str) -> bool:
+    return bool(DISCLAIMER_RE.search(value))
+
+
+def _valid_product_candidate(value: str) -> bool:
+    cleaned = _short(value, 120).strip(" \"'.,;:")
+    return bool(cleaned and cleaned != NOT_EXPLICITLY_STATED and cleaned.lower() not in PRODUCT_STOPWORDS and not _is_noise(cleaned))
 
 
 def _sentence_with(text: str, patterns: list[str], limit: int = 320) -> str | None:
@@ -122,13 +140,17 @@ def _first_matching_product(text: str) -> str | None:
     for pattern in PRODUCT_PATTERNS:
         for match in re.finditer(pattern, text):
             candidate = _short(match.group(1), 80)
-            if candidate.lower() in {"training", "fictional", "application"} or _is_noise(candidate):
+            if not _valid_product_candidate(candidate):
                 continue
             return candidate
     return None
 
 
-def _first_acronym(text: str) -> str | None:
+def _first_acronym(text: str, product: str | None = None) -> str | None:
+    if product:
+        lead = re.match(r"([A-Z][A-Za-z0-9]+(?:[-–][A-Z0-9][A-Za-z0-9]*)+)", product)
+        if lead:
+            return lead.group(1)
     for pattern in ACRONYM_PATTERNS:
         for match in re.finditer(pattern, text):
             candidate = match.group(1).strip()
@@ -139,14 +161,34 @@ def _first_acronym(text: str) -> str | None:
 
 
 def _extract_sample_size(text: str) -> str:
+    labelled = re.search(
+        r"sample\s+size\s*[:\-]\s*(\d+)\s*participants?\s+recruited\s*[;,]?\s*(\d+)\s+expected\s+evaluable\s+participants?",
+        text,
+        re.I,
+    )
+    if labelled:
+        return f"{labelled.group(1)} participants recruited; {labelled.group(2)} expected evaluable participants"
+    labelled_line = re.search(r"sample\s+size\s*[:\-]\s*([^\n.]{8,220})", text, re.I)
+    if labelled_line:
+        line = _short(labelled_line.group(1), 220)
+        if re.search(r"\b\d+\s+participants?\s+recruited\b", line, re.I):
+            evaluable = re.search(r"(\d+)\s+expected\s+evaluable\s+participants?", line, re.I)
+            recruited = re.search(r"(\d+)\s+participants?\s+recruited", line, re.I)
+            if recruited and evaluable:
+                return f"{recruited.group(1)} participants recruited; {evaluable.group(1)} expected evaluable participants"
+            return line
     patterns = [
         r"(?:sample size\s*(?:of)?|target(?:\s+sample)?(?:\s+of)?|n\s*=)\s*(?:approximately|about|around)?\s*(\d+)\s*(participants?|people|patients?|service users?)?",
+        r"(?:recruit(?:ed)?\s+(?:a\s+)?target\s+of\s*(?:approximately|about|around)?\s*)(\d+)\s*(participants?|people|patients?|service users?)",
         r"(?:approximately|about|around)\s*(\d+)\s*(participants?|people|patients?|service users?)",
         r"\b(\d+)\s*(participants?|people|patients?|service users?)\b",
     ]
     for pattern in patterns:
         match = re.search(pattern, text, re.I)
         if match:
+            context = text[max(0, match.start() - 40): match.end() + 60]
+            if re.search(r"with\s+events|event\s+count|events?\b", context, re.I) and not re.search(r"sample size|recruit", context, re.I):
+                continue
             unit = match.group(2) if len(match.groups()) > 1 and match.group(2) else "participants"
             return f"{match.group(1)} {unit}"
     return NOT_EXPLICITLY_STATED
@@ -302,11 +344,32 @@ REGULATORY_STRONG = [r"UKCA", r"DTAC", r"ISO\s*14971", r"ISO\s*13485", r"IEC\s*6
 REGULATORY_WEAK = [r"ethics", r"IRAS"]
 HEALTH_ECON_STRONG = [r"health economist", r"perspective", r"EQ-5D", r"HRQoL", r"QALY", r"resource use", r"micro-costing", r"cost-effectiveness", r"decision-analytic", r"economic model", r"budget impact", r"ICER", r"sensitivity", r"scenario", r"commissioning", r"value proposition"]
 HEALTH_ECON_WEAK = [r"comparator", r"current care", r"usual care"]
-PPIE_LEADERSHIP = [r"named\s+PPI\s+lead", r"PPI\s+coordinat(?:or|ion)", r"co-applicant[^.]{0,80}PPI\s+coordination", r"public contributor lead", r"lived experience advisory group lead", r"dedicated\s+PPI\s+lead"]
+PPIE_LEADERSHIP = [r"named\s+PPIE?\s+lead", r"PPIE?\s+leadership", r"PPIE?\s+coordinat(?:or|ion)", r"co-applicant[^.]{0,80}PPIE?\s+coordination", r"public contributor lead", r"lived experience advisory group lead", r"dedicated\s+PPIE?\s+lead"]
+
+PPIE_ONLY_RE = re.compile(r"\b(?:PPIE?|public contributors?|public advisory group|payment|expenses|Community Voice)\b", re.I)
+INCLUSION_STRONG = [r"inclusive research", r"named inclusion lead", r"sex", r"gender", r"ethnicity", r"deprivation", r"language", r"literacy", r"digital exclusion", r"mobility", r"skin tone", r"community access", r"underserved", r"accessibility"]
 
 
 def _extract_ppie_leadership(text: str) -> str | None:
-    return _sentence_with(text, PPIE_LEADERSHIP, 240)
+    return _sentence_with(text, PPIE_LEADERSHIP, 300)
+
+
+def _extract_research_inclusion(text: str) -> str | None:
+    candidates: list[tuple[int, str]] = []
+    for sentence in _sentences(text):
+        if _is_noise(sentence):
+            continue
+        hits = sum(1 for p in INCLUSION_STRONG if re.search(p, sentence, re.I))
+        if not hits:
+            continue
+        if PPIE_ONLY_RE.search(sentence) and hits < 2:
+            continue
+        labelled = 6 if re.search(r"inclusive research|named inclusion lead|sex and gender", sentence, re.I) else 0
+        candidates.append((hits * 3 + labelled, _short(sentence, 420)))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda x: (-x[0], len(x[1])))
+    return candidates[0][1]
 
 
 def _extract_uploads(text: str) -> list[str]:
@@ -351,13 +414,35 @@ def _extract_gantt_rows(text: str) -> list[str]:
         if any(re.search(p, line, re.I) for p in line_patterns):
             if len(line) <= 240 and line not in rows:
                 rows.append(line)
+    if rows:
+        return rows[:30]
+    # Some document loaders flatten table rows; recover concise WP rows from running text.
+    for match in re.finditer(r"\b(WP\s*\d+[:\-– ]+.{8,180}?)(?=\s+WP\s*\d+[:\-– ]+|\n|$)", text, re.I | re.S):
+        row = _short(match.group(1), 240)
+        if row and len(row.split()) <= 28 and row not in rows:
+            rows.append(row)
     return rows[:30]
 
 
 def _extract_milestones(text: str) -> list[str]:
     milestones: list[str] = []
     excluded = [r"^milestones$", r"^timeline and milestones$", r"gantt chart (?:is )?included"]
-    for match in re.finditer(r"\bMonth\s*(\d{1,3})\s*[:\-–]\s*([^\n.]{8,180})", text, re.I):
+    for raw_line in text.splitlines():
+        line = _short(raw_line, 220)
+        match = re.match(r"^\s*Month\s*(\d{1,3})\s*[:\-– ]\s*(.{8,180})$", line, re.I)
+        if not match:
+            continue
+        action = _short(match.group(2), 180)
+        if any(re.search(p, action, re.I) for p in excluded):
+            continue
+        if not re.search(r"[a-z]{4,}", action, re.I):
+            continue
+        value = _short(f"Month {match.group(1)}: {action}", 220)
+        if value not in milestones:
+            milestones.append(value)
+    if milestones:
+        return milestones[:20]
+    for match in re.finditer(r"\bMonth\s*(\d{1,3})\s*[:\-– ]\s*([^\n.]{8,180})", text, re.I):
         action = _short(match.group(2), 180)
         if any(re.search(p, action, re.I) for p in excluded):
             continue
@@ -382,22 +467,48 @@ def _extract_endpoints(text: str) -> list[str]:
     return endpoints[:20]
 
 
+def _extract_market_or_impact(text: str) -> str | None:
+    patterns = [r"market and adoption", r"IP and commercialisation", r"knowledge mobilisation", r"dissemination and impact", r"commissioner", r"commercialisation"]
+    candidates: list[tuple[int, str]] = []
+    for sentence in _sentences(text):
+        if _is_noise(sentence) or _is_disclaimer(sentence):
+            continue
+        if re.search(r"health economics|budget impact|QALY|cost-utility|sensitivity analysis", sentence, re.I):
+            continue
+        hits = sum(1 for p in patterns if re.search(p, sentence, re.I))
+        if hits:
+            labelled = 6 if re.search(r"market and adoption|IP and commercialisation|knowledge mobilisation", sentence, re.I) else 0
+            candidates.append((hits * 3 + labelled, _short(sentence, 360)))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda x: (-x[0], len(x[1])))
+    return candidates[0][1]
+
+
 def _actual_budget_sentence(text: str) -> str | None:
-    """Return real budget evidence, not health-economics or inclusion-cost mentions alone."""
+    """Return real budget evidence, not PPIE/inclusion-cost mentions alone."""
     strong_budget = [
-        r"budget section", r"budget spreadsheet", r"cost justification", r"staff costs", r"equipment costs?",
-        r"travel (?:and )?subsistence", r"AcoRD", r"SoECAT", r"current rates", r"funding rate",
-        r"scheme cap", r"support costs", r"treatment costs", r"cost categor(?:y|ies)", r"detailed budget",
+        r"budget and finance", r"budget section", r"budget spreadsheet", r"cost justification", r"justification of costs",
+        r"staff costs", r"equipment costs?", r"travel (?:and )?subsistence", r"AcoRD", r"SoECAT",
+        r"current rates", r"funding rate", r"scheme cap", r"total grant requested", r"cost categor(?:y|ies)",
+        r"detailed budget",
     ]
-    weak_costs = [r"PPIE costs", r"inclusion costs"]
+    ppie_only = [r"PPIE? payment", r"PPIE? costs", r"public contributor", r"expenses"]
+    candidates: list[tuple[int, str]] = []
     for sentence in _sentences(text):
         if re.search(r"\bno\s+(?:real\s+)?budget|budget[^.]{0,40}(?:not|isn['’]?t|not provided)|no budget spreadsheet", sentence, re.I):
             continue
-        if any(re.search(p, sentence, re.I) for p in strong_budget):
-            return _short(sentence)
-        if any(re.search(p, sentence, re.I) for p in weak_costs) and re.search(r"budget|justification|spreadsheet|costed|included in the costs", sentence, re.I):
-            return _short(sentence)
-    return None
+        hits = sum(1 for p in strong_budget if re.search(p, sentence, re.I))
+        if not hits:
+            continue
+        if any(re.search(p, sentence, re.I) for p in ppie_only) and hits < 2:
+            continue
+        labelled = 8 if re.search(r"budget and finance|budget section|justification of costs", sentence, re.I) else 0
+        candidates.append((hits * 3 + labelled, _short(sentence, 420)))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda x: (-x[0], len(x[1])))
+    return candidates[0][1]
 
 
 def _add_evidence(evidence: list[dict[str, str]], field: str, quote: str, docs: list[LoadedDocument]) -> None:
@@ -476,11 +587,16 @@ def extract_application_facts(documents: Iterable[LoadedDocument]) -> Applicatio
         facts.application_claimed_call = claimed_call
         _add_evidence(evidence_entries, "application_claimed_call", claimed_call, docs)
 
+    explicit_product = facts.product_or_intervention if _valid_product_candidate(facts.product_or_intervention) else None
     product = _first_matching_product(combined)
-    if product:
+    if explicit_product:
+        facts.product_or_intervention = explicit_product
+    elif product:
         facts.product_or_intervention = product
         _add_evidence(evidence_entries, "product_or_intervention", product, docs)
-    acronym = _first_acronym(combined)
+    elif not _valid_product_candidate(facts.product_or_intervention):
+        facts.product_or_intervention = NOT_EXPLICITLY_STATED
+    acronym = _first_acronym(combined, facts.product_or_intervention)
     if acronym:
         facts.acronym_or_short_name = acronym
         _add_evidence(evidence_entries, "acronym_or_short_name", acronym, docs)
@@ -505,6 +621,8 @@ def extract_application_facts(documents: Iterable[LoadedDocument]) -> Applicatio
         "sites_or_setting": _extract_sites_or_setting,
         "regulatory_plan": lambda text: _extract_weighted_plan(text, REGULATORY_STRONG, REGULATORY_WEAK),
         "health_economics_plan": lambda text: _extract_weighted_plan(text, HEALTH_ECON_STRONG, HEALTH_ECON_WEAK),
+        "research_inclusion_plan": _extract_research_inclusion,
+        "market_or_impact_evidence": _extract_market_or_impact,
     }
     for field, extractor in refined_extractors.items():
         value = extractor(combined)
@@ -527,15 +645,20 @@ def extract_application_facts(documents: Iterable[LoadedDocument]) -> Applicatio
         "health_economics_plan": KEYWORDS["health_economics"],
         "ppie_plan": KEYWORDS["ppie"],
         "research_inclusion_plan": KEYWORDS["inclusion"],
-        "market_or_impact_evidence": [r"novel", r"differentiation", r"market", r"adoption", r"commercial", r"IP", r"commissioning"],
+        "market_or_impact_evidence": [r"market", r"adoption", r"commercial", r"\bIP\b", r"commissioning", r"knowledge mobilisation", r"dissemination", r"impact"],
         "next_stage_plan": [r"next stage", r"future work", r"next step", r"later-stage", r"definitive trial", r"scale-up", r"follow-on"],
     }
     for field, patterns in fallback_map.items():
         if getattr(facts, field) == NOT_EXPLICITLY_STATED:
             sentence = _sentence_with(combined, patterns)
-            if sentence:
+            if sentence and not (field == "market_or_impact_evidence" and _is_disclaimer(sentence)):
                 setattr(facts, field, sentence)
                 _add_evidence(evidence_entries, field, sentence, docs)
+
+
+    if facts.ppie_leadership_evidence == NOT_EXPLICITLY_STATED and re.search(r"named\s+PPIE?\s+lead", facts.ppie_plan, re.I):
+        facts.ppie_leadership_evidence = _short(facts.ppie_plan, 300)
+        _add_evidence(evidence_entries, "ppie_leadership_evidence", facts.ppie_leadership_evidence, docs)
 
     comparator = _sentence_with(combined, [r"usual care", r"standard care", r"control arm", r"comparator", r"current care"])
     if comparator:
