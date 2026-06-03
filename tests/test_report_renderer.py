@@ -1,7 +1,7 @@
 from checklist_engine import build_checklist
 from guidance_parser import derived_reviewer_requirements
 from rag_dashboard import build_rag_dashboard
-from report_renderer import checklist_table_rows, raw_json_payload, render_priority_missing_evidence, render_summary, similarity_table_rows
+from report_renderer import checklist_table_rows, raw_json_payload, render_checklist_report_summary, render_priority_missing_evidence, render_summary, similarity_table_rows
 from schemas import ApplicationFacts
 
 

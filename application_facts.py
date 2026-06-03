@@ -418,6 +418,15 @@ def extract_application_facts(documents: Iterable[LoadedDocument]) -> Applicatio
             setattr(facts, field, value)
             _add_evidence(evidence_entries, field, quote, docs)
 
+    project_title = _extract_project_title(combined)
+    if project_title:
+        facts.project_title = project_title
+        _add_evidence(evidence_entries, "project_title", project_title, docs)
+    claimed_call = _extract_claimed_call(combined)
+    if claimed_call:
+        facts.application_claimed_call = claimed_call
+        _add_evidence(evidence_entries, "application_claimed_call", claimed_call, docs)
+
     product = _first_matching_product(combined)
     if product:
         facts.product_or_intervention = product
