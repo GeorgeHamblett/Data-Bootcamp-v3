@@ -50,8 +50,9 @@ class Settings:
     lens_api_base_url: str = "https://api.lens.org/scholarly/search"
     epo_ops_consumer_key: str = ""
     epo_ops_consumer_secret: str = ""
-    epo_ops_base_url: str = "https://ops.epo.org/3.2"
+    epo_ops_base_url: str = "https://ops.epo.org"  # Backwards-compatible alias for service base.
     epo_ops_auth_url: str = "https://ops.epo.org/3.2/auth/accesstoken"
+    epo_ops_service_base_url: str = "https://ops.epo.org"
     nihr_open_data_base_url: str = "https://nihr.opendatasoft.com/api/explore/v2.1"
     nihr_open_data_dataset_id: str = "infonihr-open-dataset"
     nihr_open_data_api_key: str = ""
@@ -75,8 +76,9 @@ class Settings:
             lens_api_base_url=os.getenv("LENS_API_BASE_URL", cls.lens_api_base_url),
             epo_ops_consumer_key=os.getenv("EPO_OPS_CONSUMER_KEY", ""),
             epo_ops_consumer_secret=os.getenv("EPO_OPS_CONSUMER_SECRET", ""),
-            epo_ops_base_url=os.getenv("EPO_OPS_BASE_URL", cls.epo_ops_base_url),
+            epo_ops_base_url=legacy_epo_base,
             epo_ops_auth_url=os.getenv("EPO_OPS_AUTH_URL", cls.epo_ops_auth_url),
+            epo_ops_service_base_url=epo_service_base,
             nihr_open_data_base_url=os.getenv("NIHR_OPEN_DATA_BASE_URL", cls.nihr_open_data_base_url),
             nihr_open_data_dataset_id=os.getenv("NIHR_OPEN_DATA_DATASET_ID", cls.nihr_open_data_dataset_id),
             nihr_open_data_api_key=os.getenv("NIHR_OPEN_DATA_API_KEY", ""),

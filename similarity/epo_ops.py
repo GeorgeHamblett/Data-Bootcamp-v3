@@ -39,8 +39,30 @@ def _http_status(exc: Exception) -> int | None:
     response = getattr(exc, "response", None)
     return getattr(response, "status_code", None)
 
+EPO_SOURCE = "EPO OPS"
+STOP_TERMS = {
+    "the", "a", "an", "early", "consistent", "detection", "support",
+    "application", "project", "research", "study", "patients", "people",
+    "adults", "community", "guidance", "uploaded", "docx", "template",
+}
+
+
+def _base_result(status: str, *, top_match: str = "", why: str = "", safe_terms: list[str] | None = None) -> dict[str, Any]:
+    return {
+        "source": EPO_SOURCE,
+        "status": status,
+        "matches_found": 0,
+        "top_match": top_match,
+        "score": 0.0,
+        "risk": "NONE",
+        "why_relevant": why or top_match,
+        "link_or_id": "",
+        "query_terms_used": safe_terms or [],
+    }
+
 
 def _token(settings: Settings) -> str:
+    import base64
     import requests
 
     creds = f"{settings.epo_ops_consumer_key}:{settings.epo_ops_consumer_secret}".encode()
@@ -81,6 +103,13 @@ def _is_safe_epo_term(term: str) -> bool:
         return False
     return True
 
+    clauses: list[str] = []
+    for term in safe:
+        term = _escape_cql(term)
+        if " " in term or "-" in term:
+            clauses.append(f'ta="{term}"')
+        else:
+            clauses.append(f"ta={term}")
 
 def build_epo_cql_query(terms: list[str] | str, *, max_terms: int = 4, quote_first: bool = True) -> str:
     """Build a short EPO OPS CQL query from safe patent-relevant terms only."""

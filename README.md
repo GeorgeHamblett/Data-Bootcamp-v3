@@ -62,20 +62,24 @@ The app displays six tabs:
 
 ## Live similarity checks
 
-Similarity checks use:
+The LLM remains local through Ollama. External similarity checks are separate metadata API calls that run only when explicitly enabled and when privacy gates allow them.
+
+Similarity checks can use:
 
 - Lens Scholarly API
-- EPO Open Patent Services API
+- EPO Open Patent Services (OPS) API
 - NIHR Open Data
 
 Normal user flow does **not** simulate results. Live external calls run only when all privacy gates allow them:
 
 - `Run similarity check` is enabled in the UI.
 - Mock mode is disabled.
-- `LOCAL_ONLY_MODE=false`.
+- `STRICT_LOCAL_ONLY_MODE=false`.
 - `ALLOW_EXTERNAL_SIMILARITY_QUERIES=true`.
-- Required credentials are present for Lens and EPO OPS.
-- NIHR Open Data may run without an API key.
+- `SEND_ONLY_SAFE_QUERY_TERMS=true`.
+- Required credentials are present for APIs that need them, including EPO OPS.
+
+EPO OPS calls are external metadata API calls, not LLM calls. Only short, cleaned query terms are sent to EPO OPS; full application text, uploaded documents, raw filenames and long extracted paragraphs are never sent to EPO OPS. Real EPO consumer keys and secrets must be stored only in a local `.env` file or local secret store and must never be committed.
 
 Mock similarity mode is hidden under advanced developer/testing options and defaults to off.
 
@@ -85,7 +89,7 @@ Mock similarity mode is hidden under advanced developer/testing options and defa
 - Built-in guidance files are never application evidence.
 - Similarity query building excludes filename/document terms and sends only short application-specific concepts, not full application text.
 - Blank credentials and placeholders such as `replace_with...`, `optional_replace...`, and `your_real...` are treated as missing.
-- Secret values are masked if credential status is displayed.
+- Credential status displays only `present` or `missing`; secret values are not shown.
 - Do not commit `.env`, Streamlit secrets, or real API keys.
 
 ## Running tests
