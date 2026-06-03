@@ -1042,6 +1042,7 @@ def render_table_display_dataframe(
                     "Source": result.get("source", ""),
                     "Status": result.get("status", ""),
                     "Query terms used": ", ".join(query_terms) if query_terms else NOT_EXPLICITLY_STATED,
+                    "Raw records returned": result.get("raw_records_returned", result.get("matches_found", 0)),
                     "Matches found": result.get("matches_found", 0),
                     "Top match": clean_table_evidence(result.get("top_match", ""), "Similarity", "Top match"),
                     "Score": result.get("score", 0.0),

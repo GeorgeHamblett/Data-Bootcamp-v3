@@ -1,9 +1,46 @@
-"""Cautious similarity scoring utilities."""
+"""Cautious, metadata-grounded similarity scoring utilities."""
 from __future__ import annotations
 
-from similarity.query_builder import is_generic_term, normalise
+from typing import Any
+
+from similarity.concepts import ConceptProfile, extract_metadata_concepts, metadata_text
+from similarity.query_builder import normalise, is_generic_term
 
 GENERIC_OVERLAP_ONLY = {"sus", "eq-5d", "eq-5d-5l", "recruitment", "retention", "fidelity", "interviews"}
+RISK_SCORES = {"NONE": 0.0, "LOW": 0.15, "MEDIUM": 0.45, "HIGH": 0.75, "VERY_HIGH": 0.95, "HUMAN_CHECK": 0.0}
+SPECIFIC_DIMENSIONS = {"named_entity", "technical_method", "clinical_problem", "product_function"}
+
+
+def _dedupe(items: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for item in items:
+        key = normalise(item)
+        if key and key not in seen:
+            seen.add(key)
+            out.append(item)
+    return out
+
+
+def _contains_phrase(haystack: str, phrase: str) -> bool:
+    key = normalise(phrase)
+    if not key:
+        return False
+    dehyphenated = haystack.replace("-", " ")
+    return key in haystack or key in dehyphenated or key.replace(" ", "-") in haystack
+
+
+def _overlap(app_terms: list[str], metadata_terms: list[str], metadata_haystack: str) -> list[str]:
+    """Return app concepts that are actually present in returned metadata."""
+    hits: list[str] = []
+    metadata_keys = [normalise(term) for term in metadata_terms]
+    for app_term in app_terms:
+        app_key = normalise(app_term)
+        if not app_key or app_key in GENERIC_OVERLAP_ONLY or is_generic_term(app_term):
+            continue
+        if _contains_phrase(metadata_haystack, app_term) or any(app_key in mk or mk in app_key for mk in metadata_keys if len(mk) >= 4):
+            hits.append(app_term)
+    return _dedupe(hits)
 
 GENERIC_DOMAIN_CONCEPTS = {
     "software as a medical device",
