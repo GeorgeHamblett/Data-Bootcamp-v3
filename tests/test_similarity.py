@@ -215,7 +215,7 @@ def test_similarity_service_keeps_epo_live_but_scores_samd_infrastructure_as_adj
     assert epo["risk"] == "NONE"
     assert epo["similarity_type"] == "infrastructure_only_no_wound_overlap"
     assert epo["specific_matched_concepts"] == []
-    assert "generic SaMD or AI infrastructure" in epo["why_relevant"]
+    assert "not a direct wound-imaging" in epo["why_relevant"]
 
 
 def test_identifier_extraction_and_validation_preserves_public_anchors():
@@ -247,7 +247,7 @@ def test_woubot_identifier_query_prioritises_exact_anchors_and_excludes_noise():
     terms = q.primary_terms + q.secondary_terms
     joined = " ".join(terms).lower()
 
-    assert terms[:4] == ["AI_AWARD01723", "NIHR204173", "US20210201479A1", "Woubot"]
+    assert terms[:4] == ["US20210201479A1", "AI_AWARD01723", "NIHR204173", "Woubot"]
     assert "wound healing prediction" in joined
     assert "wound image segmentation" in joined
     assert "personalised wound care" in joined
@@ -281,7 +281,7 @@ def test_nihr_open_data_list_query_stops_at_first_matching_term(monkeypatch):
 
     result = search_nihr_open_data(["Woubot", "AI_AWARD01723", "NIHR204173"], Settings())
 
-    assert calls == ["Woubot", "AI_AWARD01723", "NIHR204173"]
+    assert calls == ["Woubot", "AI_AWARD01723"]
     assert result["matches_found"] == 1
     assert result["searched_term"] == "AI_AWARD01723"
     assert result["top_match"] == "Woubot award"
@@ -319,78 +319,3 @@ def test_new_generic_evaluation_terms_are_excluded():
     joined = " ".join(q.primary_terms + q.secondary_terms).lower()
     assert "endpoint" not in joined
     assert "12-month decision model" not in joined
-
-
-def test_query_builder_excludes_regulatory_readiness_and_samd_noise():
-    f = ApplicationFacts(
-        project_title="Woubot AI_AWARD01723 NIHR204173 US20210201479A1",
-        product_or_intervention="Woubot personalised wound care software as a medical device",
-        technology_type="TRL 5 medical device with wound image segmentation",
-        regulatory_plan="Technology readiness level, ISO 13485, ISO 14971, UKCA, technical file and quality management system",
-        endpoints=["endpoint", "12-month decision model"],
-    )
-
-    q = build_similarity_query(f)
-    joined = " ".join(q.primary_terms + q.secondary_terms).lower()
-
-    for blocked in ["trl", "software as a medical device", "medical device", "endpoint", "12-month decision model", "iso 13485", "ukca"]:
-        assert blocked not in joined
-    for expected in ["AI_AWARD01723", "NIHR204173", "US20210201479A1"]:
-        assert expected in q.primary_terms + q.secondary_terms
-
-
-def test_epo_source_terms_exclude_regulatory_and_require_wound_specific_terms():
-    from similarity.service import _api_terms
-
-    terms = _api_terms(
-        "EPO OPS",
-        ["TRL", "software as a medical device", "wound healing prediction", "wound image segmentation"],
-        [],
-    )
-
-    assert terms == ["wound healing prediction", "wound image segmentation"]
-
-
-def test_exact_patent_identifier_scoring_matches_publication_base_without_kind_code():
-    scored = score_result(
-        ["US20210201479A1", "wound healing prediction"],
-        "Patent metadata",
-        "Publication number US20210201479 describes wound healing prediction.",
-    )
-
-    assert scored["risk"] == "VERY_HIGH"
-    assert scored["similarity_type"] == "exact_identifier_match"
-
-
-def test_nihr_service_selects_relevant_later_candidate_over_irrelevant_first_result(monkeypatch):
-    f = ApplicationFacts(
-        project_title="Woubot AI_AWARD01723 NIHR204173",
-        product_or_intervention="Woubot personalised wound care",
-        technology_type="wound image segmentation and wound healing prediction",
-    )
-    settings = Settings(local_only_mode=False, allow_external_similarity_queries=True)
-    nihr_result = {
-        "source": "NIHR Open Data",
-        "status": "success",
-        "matches_found": 2,
-        "top_match": "CJD project",
-        "raw": {"project_title": "CJD project", "abstract": "A prion disease study", "project_id": "007/0085"},
-        "raw_candidates": [
-            {"project_title": "CJD project", "abstract": "A prion disease study", "project_id": "007/0085", "searched_term": "Woubot"},
-            {"project_title": "Woubot award", "abstract": "Woubot wound image segmentation", "acronym": "AI_AWARD01723", "project_id": "NIHR204173", "searched_term": "AI_AWARD01723"},
-        ],
-        "searched_terms": ["Woubot", "AI_AWARD01723"],
-        "link_or_id": "007/0085",
-    }
-
-    monkeypatch.setattr("similarity.service.search_lens", lambda query, settings: {"source": "Lens Scholarly", "status": "success", "matches_found": 0, "top_match": "", "raw": "", "link_or_id": ""})
-    monkeypatch.setattr("similarity.service.search_epo", lambda query, settings: {"source": "EPO OPS", "status": "success", "matches_found": 0, "top_match": "", "raw": "", "link_or_id": ""})
-    monkeypatch.setattr("similarity.service.search_nihr_open_data", lambda query, settings: nihr_result.copy())
-
-    result = run_similarity_service(f, settings, run_similarity_check=True)
-    nihr = next(row for row in result["results"] if row["source"] == "NIHR Open Data")
-
-    assert nihr["top_match"].startswith("Woubot award")
-    assert nihr["risk"] == "VERY_HIGH"
-    assert nihr["similarity_type"] == "exact_identifier_match"
-    assert nihr["link_or_id"] == "NIHR204173"

@@ -30,13 +30,7 @@ def _dedupe(items: list[str]) -> list[str]:
 def _identifiers(text: str) -> set[str]:
     ids = set()
     for match in IDENTIFIER_RE.finditer(text or ""):
-        raw = match.group(0).upper()
-        if re.match(r"^(?:US|EP|WO)\s?\d", raw, re.I):
-            item = re.sub(r"\s+", "", raw)
-            ids.add(item)
-            ids.add(re.sub(r"(A\d|B\d|U\d)$", "", item))
-            continue
-        item = raw.replace(" ", "_")
+        item = match.group(0).upper().replace(" ", "_")
         item = re.sub(r"AI[_\-\s]?AWARD", "AI_AWARD", item, flags=re.I)
         ids.add(item)
     return ids

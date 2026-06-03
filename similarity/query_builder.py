@@ -24,10 +24,6 @@ GENERIC_DOCUMENT_TERMS = {
     "older adults", "community", "nhs", "rehabilitation", "detection", "support", "device", "platform", "system",
     "endpoint", "endpoints", "primary endpoint", "secondary endpoint", "outcome", "outcomes",
     "related incidents", "12-month decision model", "decision model", "cost model", "decision-support",
-    "trl", "technology readiness level", "technology readiness", "readiness level", "regulatory readiness",
-    "software as a medical device", "samd", "medical device", "device classification", "clinical safety",
-    "risk management file", "quality management system", "iso 13485", "iso 14971", "ukca", "ce marking",
-    "post-market surveillance", "technical file", "technical documentation", "create substantial patient burden",
     "for training use only", "fictional example application", "training use only",
 }
 
@@ -35,7 +31,7 @@ NOISE_PHRASES = [
     "for training use only", "fictional example application", "training use only", "dummy application",
     "this project will", "many people do", "falls can seriously", "milestones month",
 ]
-GENERIC_ACRONYMS = {"SUS", "PPI", "PPIE", "NHS", "NIHR", "QALY", "EQ-5D", "EQ-5D-5L", "PDA", "TRL", "SAMD", "UKCA", "ISO"}
+GENERIC_ACRONYMS = {"SUS", "PPI", "PPIE", "NHS", "NIHR", "QALY", "EQ-5D", "EQ-5D-5L", "PDA"}
 VALID_SHORT_ACRONYMS = {"AI", "IP", "ECG"}
 TECH_SUFFIXES = (
     "imaging", "assessment", "engine", "algorithm", "platform", "software", "device", "sensor", "model",
@@ -55,12 +51,12 @@ def _canonical_identifier(value: str) -> str:
 
 
 def _identifier_phrases(value: str) -> list[str]:
-    matches: list[tuple[int, str]] = []
+    phrases: list[str] = []
     for idx, pattern in enumerate(IDENTIFIER_PATTERNS):
         flags = 0 if idx == len(IDENTIFIER_PATTERNS) - 1 else re.I
         for match in re.finditer(pattern, str(value or ""), flags):
-            matches.append((match.start(), _canonical_identifier(match.group(0))))
-    return list(dict.fromkeys(phrase for _, phrase in sorted(matches, key=lambda item: item[0])))
+            phrases.append(_canonical_identifier(match.group(0)))
+    return list(dict.fromkeys(phrases))
 
 
 def _looks_like_identifier(value: str) -> bool:
@@ -152,8 +148,6 @@ def _dedupe_add(candidates: list[str], value: str) -> None:
         if key == existing_key:
             return
         if _looks_like_identifier(existing) or _looks_like_identifier(value):
-            continue
-        if key.replace("non-", "") == existing_key or existing_key.replace("non-", "") == key:
             continue
         useful_suffix = any(key.endswith(normalise(suffix)) for suffix in TECH_SUFFIXES + FUNCTION_SUFFIXES)
         if key in existing_key and len(key.split()) > 1:
@@ -273,10 +267,7 @@ def build_similarity_query(facts: ApplicationFacts, snippets: list[str] | None =
         "technology_type",
         "clinical_or_social_care_need",
         "mechanism_of_action",
-        "methodology",
-        "application_claimed_call",
         "market_or_impact_evidence",
-        "regulatory_plan",
         "references_detected",
     ]:
         for concept in _concepts_from_value(str(getattr(facts, field, NOT_EXPLICITLY_STATED))):
