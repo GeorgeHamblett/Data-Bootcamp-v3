@@ -116,3 +116,103 @@ def test_stopword_only_similarity_match_scores_none():
     scored = score_result(["The"], "The CJD mice project", "The study evaluates a mouse model.")
     assert scored["risk"] == "NONE"
     assert scored["score"] == 0.0
+
+
+def test_nvidia_samd_edge_ai_patent_is_adjacent_not_direct_wound_match():
+    terms = [
+        "WoundWise-AI",
+        "multispectral wound imaging",
+        "wound imaging device",
+        "software as a medical device",
+        "wound deterioration detection",
+        "community wound services",
+    ]
+    title = "System and method for isolated execution of software-as-a-medical-device applications on edge-artificial intelligence platforms"
+    abstract = (
+        "Systems and methods provide isolated execution of software-as-a-medical-device applications "
+        "on edge-artificial intelligence platforms. Applications are assigned execution environments, "
+        "isolation levels and computing resources based on criticality and resource requirements."
+    )
+
+    scored = score_result(terms, title, abstract, "WoundWise-AI")
+
+    assert scored["risk"] in {"LOW", "MEDIUM"}
+    assert scored["risk"] not in {"HIGH", "VERY_HIGH"}
+    assert scored["similarity_type"] in {"adjacent_infrastructure", "same_domain_broad"}
+    assert not any("wound" in concept.lower() for concept in scored["specific_matched_concepts"])
+    assert "not a direct wound-imaging" in scored["why_relevant"]
+
+
+def test_generic_samd_overlap_alone_cannot_score_high():
+    scored = score_result(
+        ["software as a medical device", "AI platform", "digital health"],
+        "Software as a medical device application on an AI platform",
+        "A digital health platform supports clinical AI applications.",
+    )
+
+    assert scored["risk"] == "LOW"
+    assert scored["similarity_type"] == "generic_overlap"
+    assert scored["specific_matched_concepts"] == []
+
+
+def test_wound_specific_overlap_scores_high_with_problem_method_and_function():
+    scored = score_result(
+        [
+            "multispectral wound imaging",
+            "wound deterioration detection",
+            "community wound services",
+            "wound imaging device",
+        ],
+        "Multispectral wound imaging device for wound deterioration detection",
+        "The device supports wound assessment and wound measurement in community wound services.",
+    )
+
+    assert scored["risk"] in {"HIGH", "VERY_HIGH"}
+    assert scored["similarity_type"] == "direct_match"
+    assert {"clinical_problem", "technical_method", "product_function"} <= set(scored["matched_dimensions"])
+
+
+def test_very_high_requires_problem_method_and_product_function_overlap():
+    broad = score_result(
+        ["multispectral wound imaging", "community wound services", "lower-limb wounds"],
+        "Multispectral wound imaging in community wound services",
+        "A broad wound assessment study for lower-limb wounds without deterioration detection or wound measurement product functions.",
+    )
+    direct = score_result(
+        ["wound deterioration", "multispectral wound imaging", "wound deterioration detection"],
+        "Wound deterioration detection using multispectral wound imaging",
+        "A clinical wound decision support product predicts wound deterioration and generates wound risk scores.",
+    )
+
+    assert broad["risk"] != "VERY_HIGH"
+    assert direct["risk"] == "VERY_HIGH"
+
+
+def test_similarity_service_keeps_epo_live_but_scores_samd_infrastructure_as_adjacent(monkeypatch):
+    f = extract_application_facts([LoadedDocument("app.txt", WOUNDWISE_APP)])
+    settings = Settings(local_only_mode=False, allow_external_similarity_queries=True)
+    nvidia_result = {
+        "source": "EPO OPS",
+        "status": "success",
+        "matches_found": 1,
+        "top_match": "System and method for isolated execution of software-as-a-medical-device applications on edge-artificial intelligence platforms",
+        "raw": (
+            "US 2026/0064432 A1 NVIDIA Corporation. Isolated execution of "
+            "software-as-a-medical-device applications on edge-artificial intelligence platforms, "
+            "including execution environments, isolation levels and computing resource allocation."
+        ),
+        "link_or_id": "US20260064432A1",
+    }
+
+    monkeypatch.setattr("similarity.service.search_lens", lambda query, settings: {"source": "Lens Scholarly", "status": "success", "matches_found": 0, "top_match": "", "raw": "", "link_or_id": ""})
+    monkeypatch.setattr("similarity.service.search_epo", lambda query, settings: nvidia_result.copy())
+    monkeypatch.setattr("similarity.service.search_nihr_open_data", lambda query, settings: {"source": "NIHR Open Data", "status": "success", "matches_found": 0, "top_match": "", "raw": "", "link_or_id": ""})
+
+    result = run_similarity_service(f, settings, run_similarity_check=True)
+    epo = next(row for row in result["results"] if row["source"] == "EPO OPS")
+
+    assert epo["status"] == "success"
+    assert epo["risk"] in {"LOW", "MEDIUM"}
+    assert epo["similarity_type"] == "adjacent_infrastructure"
+    assert epo["specific_matched_concepts"] == []
+    assert "not a direct wound-imaging" in epo["why_relevant"]
