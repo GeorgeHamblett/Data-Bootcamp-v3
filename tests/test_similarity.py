@@ -62,7 +62,7 @@ def test_stepright_query_terms_short_clean_deduped_meaningful():
     )
     q = build_similarity_query(f, ["TRAINING USE ONLY FICTIONAL EXAMPLE APPLICATION This project will test StepRight. Many people do. Falls can seriously. Milestones Month 8."])
     terms = q.primary_terms + q.secondary_terms
-    assert len(terms) <= 8
+    assert len(terms) <= 10
     assert len(terms) >= 2
     assert len({t.lower() for t in terms}) == len(terms)
     assert all(len(t) <= 60 for t in terms)
@@ -107,7 +107,7 @@ def test_woundwise_similarity_query_excludes_stopwords_and_fragments():
     assert "early" not in normalised_terms
     assert not any(term.lower().endswith(" surgical w") or term.lower() == "pressure wounds or surgical w" for term in terms)
     joined = " ".join(terms).lower()
-    for expected in ["woundwise-ai", "multispectral wound imaging", "wound imaging device", "software as a medical device", "wound deterioration detection"]:
+    for expected in ["woundwise-ai", "multispectral wound imaging", "wound imaging device", "wound deterioration detection"]:
         assert expected in joined
     assert any(term in joined for term in ["lower-limb wounds", "pressure wounds", "surgical wounds", "community wound services"])
 
@@ -136,11 +136,11 @@ def test_nvidia_samd_edge_ai_patent_is_adjacent_not_direct_wound_match():
 
     scored = score_result(terms, title, abstract, "WoundWise-AI")
 
-    assert scored["risk"] in {"LOW", "MEDIUM"}
-    assert scored["risk"] not in {"HIGH", "VERY_HIGH"}
-    assert scored["similarity_type"] in {"adjacent_infrastructure", "same_domain_broad"}
+    assert scored["risk"] == "NONE"
+    assert scored["risk"] not in {"LOW", "MEDIUM", "HIGH", "VERY_HIGH"}
+    assert scored["similarity_type"] == "infrastructure_only_no_wound_overlap"
     assert not any("wound" in concept.lower() for concept in scored["specific_matched_concepts"])
-    assert "not a direct wound-imaging" in scored["why_relevant"]
+    assert "generic SaMD or AI infrastructure" in scored["why_relevant"]
 
 
 def test_generic_samd_overlap_alone_cannot_score_high():
@@ -151,7 +151,7 @@ def test_generic_samd_overlap_alone_cannot_score_high():
     )
 
     assert scored["risk"] == "LOW"
-    assert scored["similarity_type"] == "generic_overlap"
+    assert scored["similarity_type"] == "generic_or_regulatory_overlap"
     assert scored["specific_matched_concepts"] == []
 
 
@@ -212,8 +212,8 @@ def test_similarity_service_keeps_epo_live_but_scores_samd_infrastructure_as_adj
     epo = next(row for row in result["results"] if row["source"] == "EPO OPS")
 
     assert epo["status"] == "success"
-    assert epo["risk"] in {"LOW", "MEDIUM"}
-    assert epo["similarity_type"] == "adjacent_infrastructure"
+    assert epo["risk"] == "NONE"
+    assert epo["similarity_type"] == "infrastructure_only_no_wound_overlap"
     assert epo["specific_matched_concepts"] == []
     assert "not a direct wound-imaging" in epo["why_relevant"]
 

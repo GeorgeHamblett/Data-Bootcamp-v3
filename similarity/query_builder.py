@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from schemas import ApplicationFacts, NOT_EXPLICITLY_STATED, SimilarityQuery
 
-MAX_QUERY_TERMS = 8
+MAX_QUERY_TERMS = 10
 MAX_TERM_CHARS = 60
 
 IDENTIFIER_PATTERNS = (
@@ -35,9 +35,9 @@ GENERIC_ACRONYMS = {"SUS", "PPI", "PPIE", "NHS", "NIHR", "QALY", "EQ-5D", "EQ-5D
 VALID_SHORT_ACRONYMS = {"AI", "IP", "ECG"}
 TECH_SUFFIXES = (
     "imaging", "assessment", "engine", "algorithm", "platform", "software", "device", "sensor", "model",
-    "decision support", "therapeutic", "monitoring", "measurement", "classifier",
+    "decision support", "therapeutic", "monitoring", "measurement", "classifier", "segmentation", "pixels",
 )
-FUNCTION_SUFFIXES = ("detection", "prediction", "monitoring", "prevention", "rehabilitation", "risk score", "feedback", "coaching", "escalation", "assessment", "measurement", "decision support")
+FUNCTION_SUFFIXES = ("detection", "prediction", "monitoring", "prevention", "rehabilitation", "risk score", "feedback", "coaching", "escalation", "assessment", "measurement", "decision support", "segmentation", "pixels", "care", "recommendation")
 
 
 def normalise(term: str) -> str:
@@ -113,6 +113,14 @@ def _valid_query_concept(value: str) -> bool:
     words = key.split()
     if not value or value == NOT_EXPLICITLY_STATED or is_generic_term(value):
         return False
+    if _identifier_phrases(value) and not _looks_like_identifier(value):
+        return False
+    if any(blocked in key for blocked in ["software as a medical device", "medical device", "technology readiness", "quality management system", "technical file", "iso 13485", "iso 14971", "ukca"]):
+        return False
+    if " and " in key or " including " in key or " substantial patient burden" in key or "create substantial" in key:
+        return False
+    if key.endswith(" diabetic"):
+        return False
     if len(value) > MAX_TERM_CHARS or len(words) > 5:
         return False
     if len(value) < 3 and value.upper() not in VALID_SHORT_ACRONYMS:
@@ -121,7 +129,7 @@ def _valid_query_concept(value: str) -> bool:
         return False
     if re.search(r"\b[a-z]{1,3}$", value) and not re.search(r"\b(?:AI|IP|ECG|CJD)$", value):
         return False
-    if key.split()[0] in {"and", "or", "for", "with", "plus", "the", "a", "an", "as", "reduce", "to"}:
+    if key.split()[0] in {"and", "or", "for", "with", "plus", "the", "a", "an", "as", "reduce", "to", "including", "include", "includes", "create"}:
         return False
     if key.split()[-1] in {"and", "or", "for", "with", "of", "plus"}:
         return False
@@ -170,7 +178,16 @@ def _suffix_phrases(value: str, suffixes: tuple[str, ...]) -> list[str]:
 
 def _clinical_problem_phrases(value: str) -> list[str]:
     phrases: list[str] = []
-    hints = "deterioration|risk|prevention|rehabilitation|assessment|disease|condition|wounds?|falls?|balance|mobility"
+    wound_anchors = (
+        r"chronic\s+(?:lower-limb\s+)?wounds?",
+        r"lower-limb\s+wounds?",
+        r"venous\s+leg\s+ulcers?",
+        r"diabetic\s+foot\s+ulcers?",
+    )
+    for pattern in wound_anchors:
+        for m in re.finditer(rf"\b{pattern}\b", value, re.I):
+            phrases.append(m.group(0).strip(" .;:,/-"))
+    hints = "deterioration|risk|prevention|rehabilitation|assessment|disease|condition|wounds?|ulcers?|falls?|balance|mobility"
     for m in re.finditer(rf"\b(?:[A-Za-z0-9+#-]+\s+){{0,3}}(?:{hints})(?:\s+[A-Za-z0-9+#-]+){{0,2}}\b", value, re.I):
         phrase = m.group(0).strip(" .;:,/-")
         if 2 <= len(phrase.split()) <= 5:

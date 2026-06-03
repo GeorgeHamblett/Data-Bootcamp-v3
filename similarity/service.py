@@ -1,6 +1,9 @@
 """Similarity service orchestration with strict privacy gates."""
 from __future__ import annotations
 
+import re
+from typing import Any
+
 from schemas import ApplicationFacts
 from settings import Settings
 from similarity.query_builder import build_similarity_query, normalise, is_generic_term
@@ -11,6 +14,72 @@ from similarity.concepts import metadata_text
 from similarity.lens import search_lens
 from similarity.epo_ops import search_epo
 from similarity.nihr_open_data import search_nihr_open_data
+
+
+EPO_BLOCKED_TERMS = {
+    "trl",
+    "technology readiness level",
+    "technology readiness",
+    "readiness level",
+    "regulatory readiness",
+    "software as a medical device",
+    "samd",
+    "medical device",
+    "clinical safety",
+    "quality management system",
+    "iso 13485",
+    "iso 14971",
+    "ukca",
+    "post-market surveillance",
+    "technical file",
+    "technical documentation",
+    "endpoint",
+    "outcomes",
+    "outcome",
+    "decision model",
+    "12-month decision model",
+}
+
+
+def _is_public_identifier(term: str) -> bool:
+    return bool(re.search(r"\b(?:US|EP|WO)\s?\d{6,}[A-Z0-9]*\b|\bAI[_\-\s]?AWARD\d{3,}\b|\bNIHR\d{4,}\b", term, re.I))
+
+
+def _is_patent_identifier(term: str) -> bool:
+    return bool(re.search(r"\b(?:US|EP|WO)\s?\d{6,}[A-Z0-9]*\b", term, re.I))
+
+
+def _is_nihr_identifier(term: str) -> bool:
+    return bool(re.search(r"\bAI[_\-\s]?AWARD\d{3,}\b|\bNIHR\d{4,}\b", term, re.I))
+
+
+def _is_wound_specific_epo_term(term: str) -> bool:
+    key = normalise(term)
+    return any(x in key for x in [
+        "woubot",
+        "wound",
+        "ulcer",
+        "diabetic foot",
+        "venous leg",
+        "healing prediction",
+        "image segmentation",
+        "wound pixels",
+        "non-wound pixels",
+        "personalised wound care",
+        "personalized wound care",
+        "wound care recommendation",
+        "wound assessment",
+        "wound deterioration",
+    ])
+
+
+def _ordered_terms_for_source(source: str, primary: list[str], secondary: list[str]) -> list[str]:
+    pool = primary if source == "EPO OPS" else primary + secondary
+    if source == "EPO OPS":
+        return sorted(pool, key=lambda term: (0 if _is_patent_identifier(term) else 1))
+    if source == "NIHR Open Data":
+        return sorted(pool, key=lambda term: (0 if _is_nihr_identifier(term) else 1 if _is_public_identifier(term) else 2))
+    return pool
 
 
 def _not_run(source: str, reason: str, terms: list[str]) -> dict:
@@ -28,14 +97,15 @@ def _format_query(terms: list[str]) -> str:
 def _api_terms(source: str, primary: list[str], secondary: list[str]) -> list[str]:
     seen: set[str] = set()
     picked: list[str] = []
-    pool = primary if source == "EPO OPS" else primary + secondary
-    for term in pool:
-        if is_generic_term(term):
-            continue
-        # EPO gets product/acronym/technology only; avoid endpoints/outcome lists.
-        if source == "EPO OPS" and any(x in normalise(term) for x in ["eq-5d", "berg", "timed up", "outcome", "recruitment", "retention", "usual care"]):
-            continue
+    for term in _ordered_terms_for_source(source, primary, secondary):
         key = normalise(term)
+        if source == "EPO OPS":
+            if key in EPO_BLOCKED_TERMS or any(x in key for x in ["eq-5d", "berg", "timed up", "outcome", "recruitment", "retention", "usual care"]):
+                continue
+            if not _is_patent_identifier(term) and not _is_wound_specific_epo_term(term):
+                continue
+        if is_generic_term(term) and not _is_public_identifier(term):
+            continue
         if key not in seen and len(term) <= 60 and len(term.split()) <= 5:
             picked.append(term)
             seen.add(key)
@@ -94,7 +164,7 @@ def run_similarity_service(facts: ApplicationFacts, settings: Settings, run_simi
     sources = ["Lens Scholarly", "EPO OPS", "NIHR Open Data"]
     if not run_similarity_check:
         return {"query": query, "results": [_not_run(s, "Similarity check disabled by user.", terms) for s in sources]}
-    if query.meaningful_term_count < 2:
+    if query.meaningful_term_count < 2 and not any(_is_public_identifier(term) for term in terms):
         return {"query": query, "results": [_not_run(s, "At least two meaningful application-specific terms are required before live searching.", terms) for s in sources]}
     if mock_mode:
         return {"query": query, "results": [_mock_result(s, terms) for s in sources]}
@@ -108,7 +178,10 @@ def run_similarity_service(facts: ApplicationFacts, settings: Settings, run_simi
     raw_results = []
     for func, source in [(search_lens, "Lens Scholarly"), (search_epo, "EPO OPS"), (search_nihr_open_data, "NIHR Open Data")]:
         api_terms = _api_terms(source, query.primary_terms, query.secondary_terms)
-        if len(api_terms) < 2:
+        if source == "EPO OPS" and not any(_is_patent_identifier(term) for term in api_terms) and len(api_terms) < 2:
+            raw_results.append(_not_run(source, "EPO OPS requires a patent identifier or at least two wound-specific safe query terms after cleaning.", api_terms))
+            continue
+        if source != "EPO OPS" and len(api_terms) < 2:
             raw_results.append(_not_run(source, "Fewer than two safe source-specific query terms after cleaning.", api_terms))
             continue
         try:

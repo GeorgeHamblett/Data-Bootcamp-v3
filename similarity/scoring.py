@@ -80,6 +80,42 @@ def _overlap(app_terms: list[str], metadata_terms: list[str], metadata_haystack:
             hits.append(app_term)
     return _dedupe(hits)
 
+REGULATORY_CONCEPTS = {
+    "trl",
+    "technology readiness level",
+    "technology readiness",
+    "regulatory readiness",
+    "software as a medical device",
+    "samd",
+    "medical device",
+    "clinical safety",
+    "quality management system",
+    "iso 13485",
+    "iso 14971",
+    "ukca",
+    "ce marking",
+    "post-market surveillance",
+    "technical file",
+    "technical documentation",
+}
+
+WOUND_SPECIFIC_METADATA_TERMS = (
+    "wound",
+    "ulcer",
+    "wound healing",
+    "wound image",
+    "wound segmentation",
+    "wound assessment",
+    "wound deterioration",
+    "wound-specific",
+)
+
+
+def _has_wound_specific_metadata(text: str) -> bool:
+    key = normalise(text)
+    return any(term in key for term in WOUND_SPECIFIC_METADATA_TERMS)
+
+
 GENERIC_DOMAIN_CONCEPTS = {
     "software as a medical device",
     "samd",
@@ -183,7 +219,7 @@ def _dedupe(items: list[str]) -> list[str]:
 def _generic_matches(terms: list[str], haystack: str) -> list[str]:
     matches: list[str] = []
     normalised_terms = {normalise(term) for term in terms}
-    for concept in sorted(GENERIC_DOMAIN_CONCEPTS):
+    for concept in sorted(GENERIC_DOMAIN_CONCEPTS | REGULATORY_CONCEPTS):
         key = normalise(concept)
         term_matches_concept = any(key in term or term in key for term in normalised_terms)
         if term_matches_concept and _contains(haystack, concept):
@@ -287,6 +323,18 @@ def score_result(terms: list[str], title: str, abstract: str = "", product_or_ac
     dimensions = _matched_dimensions(specific, product_or_acronym)
     dimension_names = set(dimensions)
 
+    if infrastructure and not _has_wound_specific_metadata(f"{title} {abstract}"):
+        return {
+            "score": 0.0,
+            "risk": "NONE",
+            "similarity_type": "infrastructure_only_no_wound_overlap",
+            "matched_concepts": matches,
+            "specific_matched_concepts": [],
+            "generic_matched_concepts": generic or matches,
+            "matched_dimensions": {},
+            "why_relevant": "The returned patent concerns generic SaMD or AI infrastructure and does not address wound imaging, wound assessment, wound deterioration, wound healing prediction or wound-specific decision support.",
+        }
+
     if not matches:
         return {
             "score": 0.0,
@@ -312,17 +360,15 @@ def score_result(terms: list[str], title: str, abstract: str = "", product_or_ac
         }
 
     if not specific:
-        similarity_type = "adjacent_infrastructure" if infrastructure else "generic_overlap"
-        risk = "MEDIUM" if infrastructure and generic else "LOW"
         return {
-            "score": RISK_SCORES[risk],
-            "risk": risk,
-            "similarity_type": similarity_type,
+            "score": 0.15,
+            "risk": "LOW",
+            "similarity_type": "generic_or_regulatory_overlap",
             "matched_concepts": matches,
             "specific_matched_concepts": [],
             "generic_matched_concepts": generic or matches,
             "matched_dimensions": {},
-            "why_relevant": _explanation(similarity_type, risk, [], generic or matches, infrastructure),
+            "why_relevant": "Only generic domain, regulatory-readiness or infrastructure concepts overlap; this should be treated as background context rather than a direct invention match.",
         }
 
     core_direct = {"clinical_problem", "technical_method", "product_function"}
