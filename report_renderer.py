@@ -13,7 +13,7 @@ from schemas import NOT_EXPLICITLY_STATED, ApplicationFacts, ChecklistItem
 
 RAW_JSON_DEBUG_NOTE = "Developer/debug output only. This is not intended as the adviser-facing report."
 
-RISK_ORDER = {"NONE": 0, "LOW": 1, "MEDIUM": 2, "HIGH": 3}
+RISK_ORDER = {"NONE": 0, "LOW": 1, "MEDIUM": 2, "HIGH": 3, "VERY_HIGH": 4}
 
 
 class TableRow(dict):
@@ -1046,6 +1046,9 @@ def render_table_display_dataframe(
                     "Top match": clean_table_evidence(result.get("top_match", ""), "Similarity", "Top match"),
                     "Score": result.get("score", 0.0),
                     "Risk": result.get("risk", "NONE"),
+                    "Similarity type": result.get("similarity_type", ""),
+                    "Specific matched concepts": ", ".join(result.get("specific_matched_concepts", []) or []) or "None found",
+                    "Generic matched concepts": ", ".join(result.get("generic_matched_concepts", []) or []) or "None found",
                     "Why relevant": clean_table_evidence(result.get("why_relevant", ""), "Similarity", "Why relevant"),
                     "Link/ID": _safe_similarity_link(result.get("source", ""), result.get("link_or_id", "")),
                 }

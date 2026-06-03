@@ -75,7 +75,7 @@ def run_similarity_service(facts: ApplicationFacts, settings: Settings, run_simi
         except Exception as exc:
             result = {"source": source, "status": "error", "matches_found": 0, "top_match": "", "score": 0.0, "risk": "NONE", "why_relevant": _clean_api_error(exc), "link_or_id": ""}
         title = str(result.get("top_match", ""))
-        scored = score_result(api_terms, title, str(result.get("raw", "")), facts.acronym_or_short_name)
+        scored = score_result(terms, title, str(result.get("raw", "")), facts.acronym_or_short_name)
         result.update(scored)
         result.setdefault("why_relevant", "Potentially related metadata; requires human review." if scored["risk"] in {"MEDIUM", "HIGH"} else "Low or no relatedness from available metadata.")
         result["query_terms_used"] = api_terms
