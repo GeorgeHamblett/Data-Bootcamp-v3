@@ -4,7 +4,8 @@ from __future__ import annotations
 from schemas import ApplicationFacts
 from settings import Settings
 from similarity.query_builder import build_similarity_query, normalise, is_generic_term
-from similarity.scoring import score_result
+from similarity.scoring import score_profiles
+from similarity.concepts import extract_similarity_concepts, extract_metadata_concepts
 from similarity.lens import search_lens
 from similarity.epo_ops import search_epo
 from similarity.nihr_open_data import search_nihr_open_data
@@ -64,6 +65,7 @@ def run_similarity_service(facts: ApplicationFacts, settings: Settings, run_simi
         return {"query": query, "results": [_not_run(s, "Safe-query-term privacy gate is disabled.", terms) for s in sources]}
 
     raw_results = []
+    app_profile = extract_similarity_concepts(facts)
     for func, source in [(search_lens, "Lens Scholarly"), (search_epo, "EPO OPS"), (search_nihr_open_data, "NIHR Open Data")]:
         api_terms = _api_terms(source, query.primary_terms, query.secondary_terms)
         if len(api_terms) < 2:
@@ -74,10 +76,28 @@ def run_similarity_service(facts: ApplicationFacts, settings: Settings, run_simi
             result = func(request_query, settings)
         except Exception as exc:
             result = {"source": source, "status": "error", "matches_found": 0, "top_match": "", "score": 0.0, "risk": "NONE", "why_relevant": _clean_api_error(exc), "link_or_id": ""}
+        raw_records = int(result.get("matches_found", 0) or 0)
         title = str(result.get("top_match", ""))
-        scored = score_result(api_terms, title, str(result.get("raw", "")), facts.acronym_or_short_name)
+        raw = result.get("raw", "")
+        if isinstance(raw, dict):
+            title = str(raw.get("title") or raw.get("project_title") or title)
+            abstract = str(raw.get("abstract") or raw.get("snippet") or raw.get("description") or raw.get("metadata_text") or "")
+        else:
+            abstract = str(raw or "")
+        metadata_profile = extract_metadata_concepts(title, abstract, raw)
+        scored = score_profiles(app_profile, metadata_profile, title=title, abstract=abstract, raw=raw)
         result.update(scored)
-        result.setdefault("why_relevant", "Potentially related metadata; requires human review." if scored["risk"] in {"MEDIUM", "HIGH"} else "Low or no relatedness from available metadata.")
+        result["raw_records_returned"] = raw_records
+        result["matches_found"] = 1 if scored["score"] > 0 and scored["risk"] != "NONE" else 0
+        if result["matches_found"] == 0:
+            if source == "NIHR Open Data":
+                result["top_match"] = "No relevant NIHR Open Data match found"
+            elif source == "EPO OPS":
+                result["top_match"] = "No relevant EPO match found"
+            else:
+                result["top_match"] = "No relevant match found"
+        else:
+            result["top_match"] = title or result.get("top_match", "")
         result["query_terms_used"] = api_terms
         raw_results.append(result)
     return {"query": query, "results": raw_results}

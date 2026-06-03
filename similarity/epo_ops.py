@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import base64
+import json
 import re
+import xml.etree.ElementTree as ET
 from typing import Any
 
 from settings import Settings, is_missing_credential
@@ -39,30 +41,9 @@ def _http_status(exc: Exception) -> int | None:
     response = getattr(exc, "response", None)
     return getattr(response, "status_code", None)
 
-EPO_SOURCE = "EPO OPS"
-STOP_TERMS = {
-    "the", "a", "an", "early", "consistent", "detection", "support",
-    "application", "project", "research", "study", "patients", "people",
-    "adults", "community", "guidance", "uploaded", "docx", "template",
-}
-
-
-def _base_result(status: str, *, top_match: str = "", why: str = "", safe_terms: list[str] | None = None) -> dict[str, Any]:
-    return {
-        "source": EPO_SOURCE,
-        "status": status,
-        "matches_found": 0,
-        "top_match": top_match,
-        "score": 0.0,
-        "risk": "NONE",
-        "why_relevant": why or top_match,
-        "link_or_id": "",
-        "query_terms_used": safe_terms or [],
-    }
 
 
 def _token(settings: Settings) -> str:
-    import base64
     import requests
 
     creds = f"{settings.epo_ops_consumer_key}:{settings.epo_ops_consumer_secret}".encode()
@@ -97,19 +78,15 @@ def _is_safe_epo_term(term: str) -> bool:
         return False
     if len(cleaned) > 60 or len(cleaned.split()) > 5:
         return False
+    if re.search(r"\baged\s*\d+", key) or key in {"older adults", "adults", "patients", "people", "community", "nhs", "rehabilitation", "detection"}:
+        return False
+    if key.startswith("over with ") or key.startswith("under with "):
+        return False
     if re.search(r"\b[a-z]{1,3}$", cleaned) and not re.search(r"\b(?:AI|IP|ECG|NHS)$", cleaned):
         return False
     if all(word in EPO_GENERIC_TERMS for word in key.split()):
         return False
     return True
-
-    clauses: list[str] = []
-    for term in safe:
-        term = _escape_cql(term)
-        if " " in term or "-" in term:
-            clauses.append(f'ta="{term}"')
-        else:
-            clauses.append(f"ta={term}")
 
 def build_epo_cql_query(terms: list[str] | str, *, max_terms: int = 4, quote_first: bool = True) -> str:
     """Build a short EPO OPS CQL query from safe patent-relevant terms only."""
@@ -136,6 +113,116 @@ def build_epo_cql_query(terms: list[str] | str, *, max_terms: int = 4, quote_fir
             parts.append(f'ta="{escaped}"')
     return " or ".join(parts)
 
+
+
+def _text(elem: ET.Element) -> str:
+    return " ".join(part.strip() for part in elem.itertext() if part and part.strip())
+
+
+def _parse_epo_xml(text: str) -> dict[str, Any]:
+    title = ""
+    abstract_parts: list[str] = []
+    doc_numbers: list[str] = []
+    countries: list[str] = []
+    kinds: list[str] = []
+    applicants: list[str] = []
+    try:
+        root = ET.fromstring(text.encode("utf-8"))
+    except Exception:
+        return {}
+    for elem in root.iter():
+        tag = elem.tag.split("}")[-1].lower()
+        value = _text(elem)
+        if not value:
+            continue
+        if tag == "invention-title" and not title:
+            title = value
+        elif tag == "abstract":
+            abstract_parts.append(value)
+        elif tag == "doc-number":
+            doc_numbers.append(value)
+        elif tag == "country":
+            countries.append(value)
+        elif tag == "kind":
+            kinds.append(value)
+        elif tag in {"applicant-name", "name"}:
+            applicants.append(value)
+    # If p/abstract parent tracking was not available from iter(), collect direct p text under abstract nodes.
+    for elem in root.iter():
+        if elem.tag.split("}")[-1].lower() == "abstract":
+            for child in elem.iter():
+                if child.tag.split("}")[-1].lower() == "p":
+                    v = _text(child)
+                    if v:
+                        abstract_parts.append(v)
+    abstract = " ".join(dict.fromkeys(abstract_parts))
+    applicants = list(dict.fromkeys(applicants))
+    doc_numbers = list(dict.fromkeys(doc_numbers))
+    countries = list(dict.fromkeys(countries))
+    kinds = list(dict.fromkeys(kinds))
+    return {
+        "title": title,
+        "abstract": abstract,
+        "doc_numbers": doc_numbers,
+        "applicants": applicants,
+        "country": countries[0] if countries else "",
+        "kind": kinds[0] if kinds else "",
+        "metadata_text": " ".join([title, abstract, " ".join(applicants)]).strip(),
+    }
+
+
+def _find_values(obj: Any, wanted: set[str]) -> list[str]:
+    values: list[str] = []
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            norm_key = str(key).replace("_", "-").lower()
+            if norm_key in wanted:
+                if isinstance(value, dict) and "$" in value:
+                    values.append(str(value["$"]))
+                elif not isinstance(value, (dict, list)):
+                    values.append(str(value))
+            values.extend(_find_values(value, wanted))
+    elif isinstance(obj, list):
+        for item in obj:
+            values.extend(_find_values(item, wanted))
+    return [v.strip() for v in values if str(v).strip()]
+
+
+def parse_epo_metadata(text: str) -> dict[str, Any]:
+    """Extract title/abstract/publication/applicant metadata from EPO XML or JSON safely."""
+    if not text:
+        return {"title": "", "abstract": "", "doc_numbers": [], "applicants": [], "metadata_text": ""}
+    stripped = text.strip()
+    parsed: dict[str, Any] = {}
+    if stripped.startswith("{") or stripped.startswith("["):
+        try:
+            data = json.loads(stripped)
+            titles = _find_values(data, {"invention-title", "title"})
+            abstracts = _find_values(data, {"abstract", "p"})
+            doc_numbers = _find_values(data, {"doc-number", "publication-number"})
+            countries = _find_values(data, {"country"})
+            kinds = _find_values(data, {"kind"})
+            applicants = _find_values(data, {"applicant-name", "name", "applicant"})
+            parsed = {
+                "title": titles[0] if titles else "",
+                "abstract": " ".join(dict.fromkeys(abstracts)),
+                "doc_numbers": list(dict.fromkeys(doc_numbers)),
+                "applicants": list(dict.fromkeys(applicants)),
+                "country": countries[0] if countries else "",
+                "kind": kinds[0] if kinds else "",
+            }
+        except Exception:
+            parsed = {}
+    if not parsed:
+        parsed = _parse_epo_xml(stripped)
+    if not parsed:
+        parsed = {"title": "", "abstract": "", "doc_numbers": [], "applicants": [], "metadata_text": ""}
+    parsed["metadata_text"] = " ".join([
+        str(parsed.get("title", "")),
+        str(parsed.get("abstract", "")),
+        " ".join(parsed.get("applicants", []) or []),
+    ]).strip()
+    return parsed
 
 def _extract_epo_identifier(text: str) -> str:
     match = re.search(r"\b(?:EP|WO|US)\s?\d{6,}[A-Z0-9]*\b", text)
@@ -187,13 +274,15 @@ def search_epo(query: str | list[str], settings: Settings) -> dict[str, Any]:
             response = requests.get(url, params={"q": candidate, "Range": "1-5"}, headers=headers, timeout=20)
             response.raise_for_status()
             text = response.text or ""
+            metadata = parse_epo_metadata(text)
+            title = metadata.get("title") or ("Patent record returned; title/abstract not parsed" if text else "")
             return {
                 "source": EPO_SOURCE,
                 "status": "success",
                 "matches_found": 1 if text else 0,
-                "top_match": "Patent bibliographic result" if text else "",
-                "raw": text[:1000],
-                "link_or_id": _extract_epo_identifier(text),
+                "top_match": title,
+                "raw": metadata if metadata.get("metadata_text") else {**metadata, "unparsed_excerpt": text[:1000]},
+                "link_or_id": _extract_epo_identifier(text) or " ".join(metadata.get("doc_numbers", [])[:1]),
             }
         except requests.HTTPError as exc:
             status = _http_status(exc)
