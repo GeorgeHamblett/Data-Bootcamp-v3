@@ -961,6 +961,13 @@ def dashboard_table_rows(rows: list[dict]) -> list[dict[str, Any]]:
     return render_table_display_dataframe(rows, "dashboard")
 
 
+
+def _safe_similarity_link(source: str, link_or_id: object) -> str:
+    value = str(link_or_id or "")
+    if re.search(r"https?://", value, re.I) and re.search(r"EPO|NIHR|ops\.epo|opendatasoft|api/", f"{source} {value}", re.I):
+        return "URL suppressed"
+    return value
+
 def similarity_table_rows(results: list[dict]) -> list[dict[str, Any]]:
     return render_table_display_dataframe(results, "similarity")
 
@@ -1040,7 +1047,7 @@ def render_table_display_dataframe(
                     "Score": result.get("score", 0.0),
                     "Risk": result.get("risk", "NONE"),
                     "Why relevant": clean_table_evidence(result.get("why_relevant", ""), "Similarity", "Why relevant"),
-                    "Link/ID": result.get("link_or_id", ""),
+                    "Link/ID": _safe_similarity_link(result.get("source", ""), result.get("link_or_id", "")),
                 }
             )
 

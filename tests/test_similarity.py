@@ -2,6 +2,7 @@ from schemas import ApplicationFacts
 from settings import Settings
 from similarity.query_builder import build_similarity_query, is_generic_term
 from similarity.service import run_similarity_service
+from similarity.epo_ops import build_epo_cql_query, search_epo
 
 
 def facts():
@@ -28,10 +29,11 @@ def test_mock_default_false_and_disabled_no_api(monkeypatch):
     assert called["value"] is False
 
 
-def test_local_only_blocks_live_apis_and_mock_explicit():
-    settings = Settings(local_only_mode=True, allow_external_similarity_queries=True)
+def test_strict_local_only_blocks_live_apis_and_mock_explicit():
+    settings = Settings(strict_local_only_mode=True, allow_external_similarity_queries=True)
     result = run_similarity_service(facts(), settings, run_similarity_check=True, mock_mode=False)
     assert all(r["status"] == "not_run" for r in result["results"])
+    assert all("Strict local-only mode" in r["why_relevant"] for r in result["results"])
     mock = run_similarity_service(facts(), settings, run_similarity_check=True, mock_mode=True)
     assert all("Mock mode explicitly enabled" in r["why_relevant"] for r in mock["results"])
 

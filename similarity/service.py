@@ -56,8 +56,12 @@ def run_similarity_service(facts: ApplicationFacts, settings: Settings, run_simi
         return {"query": query, "results": [_not_run(s, "At least two meaningful application-specific terms are required before live searching.", terms) for s in sources]}
     if mock_mode:
         return {"query": query, "results": [_mock_result(s, terms) for s in sources]}
-    if settings.local_only_mode or not settings.allow_external_similarity_queries:
-        return {"query": query, "results": [_not_run(s, "Live similarity blocked by LOCAL_ONLY_MODE or ALLOW_EXTERNAL_SIMILARITY_QUERIES=false.", terms) for s in sources]}
+    if settings.strict_local_only_mode:
+        return {"query": query, "results": [_not_run(s, "Strict local-only mode blocks all external API calls.", terms) for s in sources]}
+    if not settings.allow_external_similarity_queries:
+        return {"query": query, "results": [_not_run(s, "External similarity queries are disabled.", terms) for s in sources]}
+    if not settings.send_only_safe_query_terms:
+        return {"query": query, "results": [_not_run(s, "Safe-query-term privacy gate is disabled.", terms) for s in sources]}
 
     raw_results = []
     for func, source in [(search_lens, "Lens Scholarly"), (search_epo, "EPO OPS"), (search_nihr_open_data, "NIHR Open Data")]:
@@ -66,7 +70,8 @@ def run_similarity_service(facts: ApplicationFacts, settings: Settings, run_simi
             raw_results.append(_not_run(source, "Fewer than two safe source-specific query terms after cleaning.", api_terms))
             continue
         try:
-            result = func(_format_query(api_terms), settings)
+            request_query = api_terms if source == "EPO OPS" else _format_query(api_terms)
+            result = func(request_query, settings)
         except Exception as exc:
             result = {"source": source, "status": "error", "matches_found": 0, "top_match": "", "score": 0.0, "risk": "NONE", "why_relevant": _clean_api_error(exc), "link_or_id": ""}
         title = str(result.get("top_match", ""))
