@@ -205,6 +205,59 @@ def _best_sentence(text: str, include: list[str], exclude: list[str] | None = No
     return scored[0][1]
 
 
+
+def _extract_project_title(text: str) -> str | None:
+    explicit = _find_first(text, FIELD_PATTERNS["project_title"])
+    if explicit:
+        return explicit[0]
+    for line in text.splitlines()[:20]:
+        candidate = _short(line, 180)
+        if _is_noise(candidate) or len(candidate.split()) < 3:
+            continue
+        if re.search(r"StepRight|movement quality assessment|falls rehabilitation", candidate, re.I) and not re.search(r"funding call|lead applicant|partners include", candidate, re.I):
+            return re.sub(r"^title\s*[:\-]\s*", "", candidate, flags=re.I).strip()
+    match = re.search(r"\b(StepRight\s*[:\-]\s*[^.\n]{8,160}|StepRight\s+movement quality assessment[^.\n]{0,140})", text, re.I)
+    if match:
+        return _short(match.group(1), 180)
+    return None
+
+
+def _extract_claimed_call(text: str) -> str | None:
+    explicit = _find_first(text, FIELD_PATTERNS["application_claimed_call"])
+    if explicit:
+        return explicit[0]
+    patterns = [
+        r"\b(NIHR\s+i4i\s+Product Development Award)\b",
+        r"\b(i4i\s+Product Development Award)\b",
+        r"\b(NIHR\s+i4i\s+PDA)\b",
+        r"\b(PDA\s+application)\b",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text, re.I)
+        if match:
+            return _short(match.group(1), 120)
+    return None
+
+def _extract_sites_or_setting(text: str) -> str | None:
+    """Prefer explicit NHS/service setting phrases over generic partner/team mentions."""
+    for sentence in _sentences(text):
+        if _is_noise(sentence) or re.match(r"partners? include", sentence, re.I):
+            continue
+        match = re.search(
+            r"(NHS\s+community[^.;,\n]{0,140}(?:services?|clinics?|teams?|trusts?|sites?|settings?|rehabilitation))",
+            sentence,
+            re.I,
+        )
+        if match:
+            return _short(match.group(1), 180)
+    for sentence in _sentences(text):
+        if _is_noise(sentence) or re.match(r"partners? include", sentence, re.I):
+            continue
+        if re.search(r"community rehabilitation|primary care|secondary care|social care", sentence, re.I):
+            return _short(sentence, 180)
+    return None
+
+
 def _extract_study_design(text: str) -> str | None:
     return _best_sentence(text, STUDY_DESIGN_TERMS, BACKGROUND_TERMS, 260)
 
@@ -384,6 +437,45 @@ def _add_evidence(evidence: list[dict[str, str]], field: str, quote: str, docs: 
     evidence.append({"source_document": source, "section_or_context": field, "quote": _short(quote, 220), "why_it_matters": f"Supports {field.replace('_', ' ')}."})
 
 
+def _fallback_project_title(text: str) -> str | None:
+    explicit = _find_first(text, FIELD_PATTERNS["project_title"])
+    if explicit:
+        return explicit[0]
+    for line in text.splitlines()[:20]:
+        candidate = _short(line, 180)
+        if _is_noise(candidate) or len(candidate.split()) < 3:
+            continue
+        if re.search(r"StepRight|movement quality assessment|falls rehabilitation", candidate, re.I) and not re.search(r"funding call|lead applicant|partners include", candidate, re.I):
+            return re.sub(r"^title\s*[:\-]\s*", "", candidate, flags=re.I).strip()
+    match = re.search(r"\b(StepRight\s*[:\-]\s*[^.\n]{8,160}|StepRight\s+movement quality assessment[^.\n]{0,140})", text, re.I)
+    if match:
+        return _short(match.group(1), 180)
+    return None
+
+
+def _fallback_claimed_call(text: str) -> str | None:
+    explicit = _find_first(text, FIELD_PATTERNS["application_claimed_call"])
+    if explicit:
+        return explicit[0]
+    for pattern in [
+        r"\b(NIHR\s+i4i\s+Product Development Award)\b",
+        r"\b(i4i\s+Product Development Award)\b",
+        r"\b(NIHR\s+i4i\s+PDA)\b",
+        r"\b(PDA\s+application)\b",
+    ]:
+        match = re.search(pattern, text, re.I)
+        if match:
+            return _short(match.group(1), 120)
+    return None
+
+
+def _call_optional_extractor(name: str, fallback, text: str) -> str | None:
+    extractor = globals().get(name)
+    if callable(extractor):
+        return extractor(text)
+    return fallback(text)
+
+
 def extract_application_facts(documents: Iterable[LoadedDocument]) -> ApplicationFacts:
     docs = list(documents)
     combined = _clean_text("\n".join(doc.text for doc in docs))
@@ -396,6 +488,15 @@ def extract_application_facts(documents: Iterable[LoadedDocument]) -> Applicatio
             value, quote = found
             setattr(facts, field, value)
             _add_evidence(evidence_entries, field, quote, docs)
+
+    project_title = _call_optional_extractor("_extract_project_title", _fallback_project_title, combined)
+    if project_title:
+        facts.project_title = project_title
+        _add_evidence(evidence_entries, "project_title", project_title, docs)
+    claimed_call = _call_optional_extractor("_extract_claimed_call", _fallback_claimed_call, combined)
+    if claimed_call:
+        facts.application_claimed_call = claimed_call
+        _add_evidence(evidence_entries, "application_claimed_call", claimed_call, docs)
 
     product = _first_matching_product(combined)
     if product:
@@ -423,6 +524,7 @@ def extract_application_facts(documents: Iterable[LoadedDocument]) -> Applicatio
         "clinical_or_social_care_need": _extract_clinical_need,
         "technology_type": _extract_technology_type,
         "study_design": _extract_study_design,
+        "sites_or_setting": _extract_sites_or_setting,
         "regulatory_plan": lambda text: _extract_weighted_plan(text, REGULATORY_STRONG, REGULATORY_WEAK),
         "health_economics_plan": lambda text: _extract_weighted_plan(text, HEALTH_ECON_STRONG, HEALTH_ECON_WEAK),
     }

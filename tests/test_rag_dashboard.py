@@ -53,3 +53,22 @@ def test_project_management_and_finance_dashboard_rules():
     finance = next(r for r in rows if r["Subsystem"] == "Finance")
     assert pm["RAG"] in {"AMBER", "GREEN"}
     assert finance["RAG"] == "RED"
+
+
+def test_ppie_leadership_updates_dashboard_gap_and_action():
+    facts = ApplicationFacts(
+        ppie_plan="Public contributors advise on materials.",
+        ppie_leadership_evidence="Ms Leila Karim, a co-applicant, will provide day-to-day PPI coordination.",
+    )
+    rows = build_rag_dashboard(build_checklist(facts, derived_reviewer_requirements()), facts)
+    ppie = next(r for r in rows if r["Subsystem"] == "Patient and Public Involvement")
+    assert "named ppi lead" not in ppie["Priority action"].lower()
+    assert "ppi leadership is evidenced" in ppie["Main gap"].lower()
+
+
+def test_gantt_evidence_updates_dashboard_gap_and_action():
+    facts = ApplicationFacts(duration_months="24", work_packages=["WP1 setup Month start 1 Month end 2"], milestones=["Month 2: setup complete"])
+    rows = build_rag_dashboard(build_checklist(facts, derived_reviewer_requirements()), facts)
+    pm = next(r for r in rows if r["Subsystem"] == "Project Management")
+    assert "gantt" not in pm["Priority action"].lower()
+    assert "gantt missing" not in pm["Main gap"].lower()
