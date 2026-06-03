@@ -405,6 +405,45 @@ def _add_evidence(evidence: list[dict[str, str]], field: str, quote: str, docs: 
     evidence.append({"source_document": source, "section_or_context": field, "quote": _short(quote, 220), "why_it_matters": f"Supports {field.replace('_', ' ')}."})
 
 
+def _fallback_project_title(text: str) -> str | None:
+    explicit = _find_first(text, FIELD_PATTERNS["project_title"])
+    if explicit:
+        return explicit[0]
+    for line in text.splitlines()[:20]:
+        candidate = _short(line, 180)
+        if _is_noise(candidate) or len(candidate.split()) < 3:
+            continue
+        if re.search(r"StepRight|movement quality assessment|falls rehabilitation", candidate, re.I) and not re.search(r"funding call|lead applicant|partners include", candidate, re.I):
+            return re.sub(r"^title\s*[:\-]\s*", "", candidate, flags=re.I).strip()
+    match = re.search(r"\b(StepRight\s*[:\-]\s*[^.\n]{8,160}|StepRight\s+movement quality assessment[^.\n]{0,140})", text, re.I)
+    if match:
+        return _short(match.group(1), 180)
+    return None
+
+
+def _fallback_claimed_call(text: str) -> str | None:
+    explicit = _find_first(text, FIELD_PATTERNS["application_claimed_call"])
+    if explicit:
+        return explicit[0]
+    for pattern in [
+        r"\b(NIHR\s+i4i\s+Product Development Award)\b",
+        r"\b(i4i\s+Product Development Award)\b",
+        r"\b(NIHR\s+i4i\s+PDA)\b",
+        r"\b(PDA\s+application)\b",
+    ]:
+        match = re.search(pattern, text, re.I)
+        if match:
+            return _short(match.group(1), 120)
+    return None
+
+
+def _call_optional_extractor(name: str, fallback, text: str) -> str | None:
+    extractor = globals().get(name)
+    if callable(extractor):
+        return extractor(text)
+    return fallback(text)
+
+
 def extract_application_facts(documents: Iterable[LoadedDocument]) -> ApplicationFacts:
     docs = list(documents)
     combined = _clean_text("\n".join(doc.text for doc in docs))
