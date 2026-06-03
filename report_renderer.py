@@ -627,27 +627,8 @@ def render_rag_dashboard_summary(dashboard: list[dict]) -> str:
 # ---------------------------------------------------------------------
 
 
-def _query_terms_from_similarity(similarity: dict) -> list[str]:
-    terms: list[str] = []
-
-    query = similarity.get("query") if isinstance(similarity, dict) else None
-
-    if isinstance(query, dict):
-        candidate_terms = list(query.get("primary_terms", [])) + list(query.get("secondary_terms", []))
-    elif query is not None:
-        candidate_terms = list(_get(query, "primary_terms", []) or []) + list(_get(query, "secondary_terms", []) or [])
-    else:
-        candidate_terms = []
-
-    for term in candidate_terms:
-        if _present(term):
-            terms.append(str(term))
-
-    for result in similarity.get("results", []) if isinstance(similarity, dict) else []:
-        for term in result.get("query_terms_used", []) or []:
-            if _present(term):
-                terms.append(str(term))
-
+def _clean_similarity_terms(terms: list[Any]) -> list[str]:
+    """Return short, adviser-safe similarity terms with duplicates and placeholders removed."""
     blocked = {
         "second",
         "some",
@@ -663,7 +644,7 @@ def _query_terms_from_similarity(similarity: dict) -> list[str]:
     cleaned: list[str] = []
     seen: set[str] = set()
 
-    for term in terms:
+    for term in terms or []:
         text = clean_display_value(term, max_chars=60)
 
         if not _present(text):
@@ -685,6 +666,30 @@ def _query_terms_from_similarity(similarity: dict) -> list[str]:
             break
 
     return cleaned
+
+
+def _query_terms_from_similarity(similarity: dict) -> list[str]:
+    terms: list[str] = []
+
+    query = similarity.get("query") if isinstance(similarity, dict) else None
+
+    if isinstance(query, dict):
+        candidate_terms = list(query.get("primary_terms", [])) + list(query.get("secondary_terms", []))
+    elif query is not None:
+        candidate_terms = list(_get(query, "primary_terms", []) or []) + list(_get(query, "secondary_terms", []) or [])
+    else:
+        candidate_terms = []
+
+    for term in candidate_terms:
+        if _present(term):
+            terms.append(str(term))
+
+    for result in similarity.get("results", []) if isinstance(similarity, dict) else []:
+        for term in result.get("query_terms_used", []) or []:
+            if _present(term):
+                terms.append(str(term))
+
+    return _clean_similarity_terms(terms)
 
 
 def similarity_query_terms_display(terms: list[str]) -> str:

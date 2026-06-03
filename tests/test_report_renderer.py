@@ -1,7 +1,7 @@
 from checklist_engine import build_checklist
 from guidance_parser import derived_reviewer_requirements
 from rag_dashboard import build_rag_dashboard
-from report_renderer import checklist_table_rows, raw_json_payload, render_checklist_report_summary, render_priority_missing_evidence, render_summary, similarity_table_rows
+from report_renderer import checklist_table_rows, raw_json_payload, render_checklist_report_summary, render_priority_missing_evidence, render_summary, similarity_query_terms_display, similarity_table_rows
 from schemas import ApplicationFacts
 
 
@@ -25,6 +25,19 @@ def test_checklist_report_not_dump_raw_json_and_similarity_readable():
     sim_rows = similarity_table_rows([{"source":"NIHR Open Data","status":"not_run","query_terms_used":["A","B"],"matches_found":0,"risk":"NONE"}])
     assert sim_rows[0]["Source"] == "NIHR Open Data"
     assert "Query terms used" in sim_rows[0]
+
+
+def test_similarity_query_terms_display_cleans_terms():
+    terms = [
+        "CardioPatch",
+        "adherence",
+        "cardiopatch",
+        "older adults",
+        "TRAINING USE ONLY",
+        "wearable ECG sensor",
+    ]
+
+    assert similarity_query_terms_display(terms) == "CardioPatch, older adults, wearable ECG sensor"
 
 
 def test_priority_missing_evidence_uses_actions_not_portal_text():
