@@ -15,6 +15,16 @@ REQUIRED = [
     "OUTPUT_QUALITY_VALIDATION_PROMPT",
 ]
 
+PROBLEM_SPOTTER_PROMPTS = [
+    "ELIGIBILITY_PROGRAMME_FIT_PROBLEM_SPOTTER_PROMPT",
+    "CLINICAL_VALIDATION_PROBLEM_SPOTTER_PROMPT",
+    "HEALTH_ECONOMICS_PROBLEM_SPOTTER_PROMPT",
+    "PPIE_PROBLEM_SPOTTER_PROMPT",
+    "RESEARCH_INCLUSION_PROBLEM_SPOTTER_PROMPT",
+    "PROJECT_MANAGEMENT_WORKPLAN_PROBLEM_SPOTTER_PROMPT",
+    "FINANCE_PROBLEM_SPOTTER_PROMPT",
+]
+
 SECTION_PROMPTS = [
     "MAIN_CASE_SUMMARY_PROMPT",
     "CHECKLIST_REPORT_SUMMARY_PROMPT",
@@ -77,3 +87,31 @@ def test_summary_not_raw_field_list_and_similarity_excludes_generic_terms():
     assert "Not a field list" in prompts.SUMMARY_PROMPT or "raw field-list" in prompts.SUMMARY_PROMPT
     for term in ["uploaded", "docx", "application", "template", "playbook", "guidance"]:
         assert term in prompts.SIMILARITY_QUERY_EXTRACTION_PROMPT
+
+
+
+def test_problem_spotter_prompts_cover_all_expert_sections():
+    assert set(prompts.PROBLEM_SPOTTER_SECTION_PROMPTS) == {
+        "Eligibility & Programme Fit",
+        "Clinical Validation & Evidence",
+        "Health Economics",
+        "Patient & Public Involvement",
+        "Research Inclusion",
+        "Project Management & Workplan",
+        "Finance",
+    }
+    for name in PROBLEM_SPOTTER_PROMPTS:
+        text = getattr(prompts, name)
+        assert isinstance(text, str) and len(text) > 1000
+        assert "Purpose:" in text
+        assert "APPLICATION TEXT:" in text
+        assert "{text}" in text
+        assert "CRITERION ASSESSMENT:" in text
+        assert "OVERALL RATING: [Red / Amber / Green]" in text
+        assert "TOP PROBLEMS FOR THE APPLICANT TO ADDRESS:" in text
+        assert "Critical Gap" in text
+        assert "Needs Strengthening" in text
+        assert "Adequate" in text
+        assert "presence" in text.lower()
+        assert "specific" in text.lower()
+        assert "credib" in text.lower() or "evidence proportionate" in text.lower()

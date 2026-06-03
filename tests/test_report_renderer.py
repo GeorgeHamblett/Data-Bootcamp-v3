@@ -66,3 +66,12 @@ def test_summary_polishes_raw_sentences_and_uses_duration_24():
     assert ". with" not in summary
     assert ".." not in summary
     assert "comparator/control Comparator:" not in summary
+
+
+def test_similarity_table_suppresses_raw_api_urls_but_keeps_ids():
+    rows = similarity_table_rows([
+        {"source": "EPO OPS", "status": "success", "query_terms_used": ["wound imaging device"], "matches_found": 1, "risk": "LOW", "link_or_id": "https://ops.epo.org/3.2/rest-services/published-data/search/biblio?q=secret"},
+        {"source": "EPO OPS", "status": "success", "query_terms_used": ["wound imaging device"], "matches_found": 1, "risk": "LOW", "link_or_id": "EP1234567"},
+    ])
+    assert rows[0]["Link/ID"] == "URL suppressed"
+    assert rows[1]["Link/ID"] == "EP1234567"

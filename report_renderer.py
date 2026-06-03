@@ -478,6 +478,7 @@ def render_main_case_summary(
     ppie_lead = clean_table_evidence(_get(facts, "ppie_leadership_evidence"), max_words=25)
     inclusion = clean_table_evidence(_get(facts, "research_inclusion_plan"), max_words=35)
     project_management = clean_table_evidence(_get(facts, "project_management_plan"), max_words=35)
+    finance = clean_table_evidence(_get(facts, "finance_or_budget_evidence"), max_words=40)
 
     groups = group_dashboard_by_rag(dashboard)
     risk_rows = [row for row in dashboard or [] if str(row.get("RAG", "")).upper() in {"RED", "AMBER", "GREY"}]
@@ -519,6 +520,7 @@ def render_main_case_summary(
     - **PPIE leadership evidence:** {ppie_lead}
     - **Research inclusion evidence:** {inclusion}
     - **Project management evidence:** {project_management}
+    - **Finance evidence:** {finance}
 
     Finance is considered separately from health economics. Economic modelling, EQ-5D/QALY or cost-effectiveness wording supports health economics, while Finance requires actual budget, cost-category, rate, cap, AcoRD, SoECAT or cost-justification evidence.
 
@@ -959,6 +961,13 @@ def dashboard_table_rows(rows: list[dict]) -> list[dict[str, Any]]:
     return render_table_display_dataframe(rows, "dashboard")
 
 
+
+def _safe_similarity_link(source: str, link_or_id: object) -> str:
+    value = str(link_or_id or "")
+    if re.search(r"https?://", value, re.I) and re.search(r"EPO|NIHR|ops\.epo|opendatasoft|api/", f"{source} {value}", re.I):
+        return "URL suppressed"
+    return value
+
 def similarity_table_rows(results: list[dict]) -> list[dict[str, Any]]:
     return render_table_display_dataframe(results, "similarity")
 
@@ -1038,7 +1047,7 @@ def render_table_display_dataframe(
                     "Score": result.get("score", 0.0),
                     "Risk": result.get("risk", "NONE"),
                     "Why relevant": clean_table_evidence(result.get("why_relevant", ""), "Similarity", "Why relevant"),
-                    "Link/ID": result.get("link_or_id", ""),
+                    "Link/ID": _safe_similarity_link(result.get("source", ""), result.get("link_or_id", "")),
                 }
             )
 

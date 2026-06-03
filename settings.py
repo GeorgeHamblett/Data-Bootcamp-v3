@@ -35,48 +35,58 @@ def is_missing_credential(value: str | None) -> bool:
 
 
 def mask_secret(value: str | None) -> str:
-    if is_missing_credential(value):
-        return "missing"
-    assert value is not None
-    if len(value) <= 8:
-        return "****"
-    return f"{value[:4]}…{value[-4:]}"
+    return "missing" if is_missing_credential(value) else "present"
+
 
 @dataclass(frozen=True)
 class Settings:
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "gemma3:1b"
+    require_local_llm: bool = True
+    strict_local_only_mode: bool = False
+    allow_external_similarity_queries: bool = True
+    send_only_safe_query_terms: bool = True
     lens_api_token: str = ""
     lens_api_base_url: str = "https://api.lens.org/scholarly/search"
     epo_ops_consumer_key: str = ""
     epo_ops_consumer_secret: str = ""
-    epo_ops_base_url: str = "https://ops.epo.org/3.2"
+    epo_ops_base_url: str = "https://ops.epo.org"  # Backwards-compatible alias for service base.
     epo_ops_auth_url: str = "https://ops.epo.org/3.2/auth/accesstoken"
+    epo_ops_service_base_url: str = "https://ops.epo.org"
     nihr_open_data_base_url: str = "https://nihr.opendatasoft.com/api/explore/v2.1"
     nihr_open_data_dataset_id: str = "infonihr-open-dataset"
     nihr_open_data_api_key: str = ""
-    local_only_mode: bool = True
-    allow_external_similarity_queries: bool = False
+    local_only_mode: bool = False  # backwards-compatible alias; strict_local_only_mode is authoritative.
     save_uploads: bool = False
     mock_similarity_mode: bool = False
 
     @classmethod
     def from_env(cls) -> "Settings":
         _load_dotenv()
+        legacy_local_only = as_bool(os.getenv("LOCAL_ONLY_MODE"), False)
+        strict_local_only = as_bool(os.getenv("STRICT_LOCAL_ONLY_MODE"), legacy_local_only)
+        legacy_epo_base = os.getenv("EPO_OPS_BASE_URL", cls.epo_ops_service_base_url).rstrip("/")
+        if legacy_epo_base.endswith("/3.2"):
+            legacy_epo_base = legacy_epo_base[:-4]
+        epo_service_base = os.getenv("EPO_OPS_SERVICE_BASE_URL", legacy_epo_base).rstrip("/")
         return cls(
             ollama_base_url=os.getenv("OLLAMA_BASE_URL", cls.ollama_base_url),
             ollama_model=os.getenv("OLLAMA_MODEL", cls.ollama_model),
+            require_local_llm=as_bool(os.getenv("REQUIRE_LOCAL_LLM"), True),
+            strict_local_only_mode=strict_local_only,
+            allow_external_similarity_queries=as_bool(os.getenv("ALLOW_EXTERNAL_SIMILARITY_QUERIES"), True),
+            send_only_safe_query_terms=as_bool(os.getenv("SEND_ONLY_SAFE_QUERY_TERMS"), True),
             lens_api_token=os.getenv("LENS_API_TOKEN", ""),
             lens_api_base_url=os.getenv("LENS_API_BASE_URL", cls.lens_api_base_url),
             epo_ops_consumer_key=os.getenv("EPO_OPS_CONSUMER_KEY", ""),
             epo_ops_consumer_secret=os.getenv("EPO_OPS_CONSUMER_SECRET", ""),
-            epo_ops_base_url=os.getenv("EPO_OPS_BASE_URL", cls.epo_ops_base_url),
+            epo_ops_base_url=legacy_epo_base,
             epo_ops_auth_url=os.getenv("EPO_OPS_AUTH_URL", cls.epo_ops_auth_url),
+            epo_ops_service_base_url=epo_service_base,
             nihr_open_data_base_url=os.getenv("NIHR_OPEN_DATA_BASE_URL", cls.nihr_open_data_base_url),
             nihr_open_data_dataset_id=os.getenv("NIHR_OPEN_DATA_DATASET_ID", cls.nihr_open_data_dataset_id),
             nihr_open_data_api_key=os.getenv("NIHR_OPEN_DATA_API_KEY", ""),
-            local_only_mode=as_bool(os.getenv("LOCAL_ONLY_MODE"), True),
-            allow_external_similarity_queries=as_bool(os.getenv("ALLOW_EXTERNAL_SIMILARITY_QUERIES"), False),
+            local_only_mode=legacy_local_only,
             save_uploads=as_bool(os.getenv("SAVE_UPLOADS"), False),
             mock_similarity_mode=as_bool(os.getenv("MOCK_SIMILARITY_MODE"), False),
         )

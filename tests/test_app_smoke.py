@@ -16,3 +16,8 @@ def test_app_runtime_document_inputs_are_limited_to_application_and_specific_cal
     assert "Upload RSS" not in source
     assert "Upload NIHR" not in source
     assert app.NO_SPECIFIC_CALL_GUIDANCE_MESSAGE == "No specific funding call guidance provided; review uses built-in NIHR domestic guidance and RSS PDA playbook guidance."
+
+
+def test_app_imports_with_epo_credential_button():
+    import app
+    assert app.APP_TITLE

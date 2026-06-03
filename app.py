@@ -24,6 +24,7 @@ from report_renderer import (
 )
 from settings import Settings
 from similarity.service import run_similarity_service
+from similarity.epo_ops import check_epo_credentials
 
 APP_TITLE = "RSS/NIHR Funding Application Checklist Assistant"
 NO_SPECIFIC_CALL_GUIDANCE_MESSAGE = "No specific funding call guidance provided; review uses built-in NIHR domestic guidance and RSS PDA playbook guidance."
@@ -56,6 +57,12 @@ def main() -> None:
             mock_similarity = st.checkbox("Mock similarity mode", value=False)
             show_raw_requirements = st.checkbox("Show raw extracted requirements", value=False)
             st.write("Credential status", settings.credential_status())
+            if st.button("Test EPO OPS credentials"):
+                epo_status = check_epo_credentials(settings)
+                if epo_status.get("status") == "success":
+                    st.success(epo_status.get("message", "EPO OPS authentication succeeded."))
+                else:
+                    st.warning(epo_status.get("why_relevant") or epo_status.get("top_match") or "EPO OPS authentication failed.")
         run_button = st.button("Generate checklist report", type="primary")
 
     if not run_button:
