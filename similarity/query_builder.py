@@ -284,11 +284,11 @@ def _short_concepts_from_text(snippet: str) -> list[str]:
 
 def _term_priority(term: str) -> tuple[int, str]:
     key = normalise(term)
-    if re.fullmatch(r"\bAI[_\-\s]?AWARD\d{3,}\b", term, re.I):
-        return (0, key)
-    if re.fullmatch(r"\bNIHR\d{4,}\b", term, re.I):
-        return (1, key)
     if re.fullmatch(r"\b(?:US|EP|WO)\s?\d{6,}[A-Z0-9]*\b", term, re.I):
+        return (0, key)
+    if re.fullmatch(r"\bAI[_\-\s]?AWARD\d{3,}\b", term, re.I):
+        return (1, key)
+    if re.fullmatch(r"\bNIHR\d{4,}\b", term, re.I):
         return (2, key)
     if key in {"woubot", "woucare-ai", "woucare ai", "woundwise-ai", "woundwise"}:
         return (3, key)

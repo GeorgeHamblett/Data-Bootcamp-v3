@@ -109,8 +109,6 @@ def build_epo_cql_query(terms: list[str] | str, *, max_terms: int = 4, quote_fir
         key = normalise(term)
         if not _is_safe_epo_term(term) or key in seen:
             continue
-        if _is_patent_identifier(term):
-            return f"pn={_patent_number_for_cql(term)}"
         selected.append(term)
         seen.add(key)
         if len(selected) >= max_terms:
