@@ -142,6 +142,63 @@ INFRASTRUCTURE_CONCEPTS = {
     "deployment architecture",
 }
 
+CLINICAL_CONDITION_CONCEPTS = {
+    "chronic wounds",
+    "lower-limb wounds",
+    "lower limb wounds",
+    "pressure wounds",
+    "surgical wounds",
+    "diabetic foot ulcer",
+    "diabetic foot ulcers",
+    "venous leg ulcer",
+    "venous leg ulcers",
+    "wound deterioration",
+    "wound assessment",
+    "atrial fibrillation",
+    "falls",
+    "falls prevention",
+}
+
+TECHNICAL_METHOD_CONCEPTS = {
+    "multispectral imaging",
+    "multispectral wound imaging",
+    "wound imaging",
+    "wound imaging device",
+    "wound boundary measurement",
+    "thermal imaging",
+    "temperature condition index",
+    "foot thermal scans",
+    "mobile thermal camera",
+    "wound image segmentation",
+    "wound healing prediction",
+    "wound pixels",
+    "non-wound pixels",
+    "tissue oxygenation",
+    "thermal pattern analysis",
+    "wound deterioration model",
+    "wearable ecg sensor",
+    "movement quality assessment",
+}
+
+PRODUCT_FUNCTION_CONCEPTS = {
+    "wound risk score",
+    "wound risk scores",
+    "wound deterioration detection",
+    "detection",
+    "early diabetic foot ulcer detection",
+    "wound care recommendation",
+    "personalised wound care",
+    "personalized wound care",
+    "risk categorisation",
+    "risk categorization",
+    "screening frequency recommendation",
+    "wound measurement",
+    "escalation support",
+    "clinical wound decision support",
+    "wound decision support",
+    "decision support platform for community wound deterioration detection",
+}
+
 DIMENSION_PHRASES = {
     "clinical_condition": CLINICAL_CONDITION_CONCEPTS,
     "clinical_problem": {
@@ -358,7 +415,7 @@ def score_result(terms: list[str], title: str, abstract: str = "", product_or_ac
             "specific_matched_concepts": [],
             "generic_matched_concepts": generic or matches,
             "matched_dimensions": {},
-            "why_relevant": "The returned patent concerns generic SaMD or AI infrastructure and does not address wound imaging, wound assessment, wound deterioration, wound healing prediction or wound-specific decision support.",
+            "why_relevant": "The returned patent concerns generic SaMD or AI infrastructure and is not a direct wound-imaging match; it does not address wound imaging, wound assessment, wound deterioration, wound healing prediction or wound-specific decision support.",
         }
 
     if not matches:
