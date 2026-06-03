@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from typing import Any
+import re
 
 from similarity.concepts import ConceptProfile, extract_metadata_concepts, metadata_text
 from similarity.query_builder import normalise, is_generic_term
@@ -9,6 +10,10 @@ from similarity.query_builder import normalise, is_generic_term
 GENERIC_OVERLAP_ONLY = {"sus", "eq-5d", "eq-5d-5l", "recruitment", "retention", "fidelity", "interviews"}
 RISK_SCORES = {"NONE": 0.0, "LOW": 0.15, "MEDIUM": 0.45, "HIGH": 0.75, "VERY_HIGH": 0.95, "HUMAN_CHECK": 0.0}
 SPECIFIC_DIMENSIONS = {"named_entity", "technical_method", "clinical_problem", "product_function"}
+IDENTIFIER_RE = re.compile(
+    r"\b(?:US|EP|WO)\s?\d{6,}[A-Z0-9]*\b|\bAI[_\-\s]?AWARD\d{3,}\b|\bNIHR\d{4,}\b",
+    re.I,
+)
 
 
 def _dedupe(items: list[str]) -> list[str]:
@@ -20,6 +25,39 @@ def _dedupe(items: list[str]) -> list[str]:
             seen.add(key)
             out.append(item)
     return out
+
+
+def _identifiers(text: str) -> set[str]:
+    ids = set()
+    for match in IDENTIFIER_RE.finditer(text or ""):
+        item = match.group(0).upper().replace(" ", "_")
+        item = re.sub(r"AI[_\-\s]?AWARD", "AI_AWARD", item, flags=re.I)
+        ids.add(item)
+    return ids
+
+
+def _exact_identifier_result(exact_ids: list[str]) -> dict:
+    return {
+        "score": 0.95,
+        "risk": "VERY_HIGH",
+        "similarity_type": "exact_identifier_match",
+        "matched_concepts": exact_ids,
+        "specific_matched_concepts": exact_ids,
+        "generic_matched_concepts": [],
+        "matched_dimensions": {"named_entity": exact_ids},
+        "why_relevant": "The returned metadata contains the same public award, project or patent identifier as the application. This should be treated as a direct similarity hit requiring manual review.",
+    }
+
+
+def _profile_text(profile: ConceptProfile) -> str:
+    chunks: list[str] = []
+    for values in profile.specific_groups().values():
+        chunks.extend(values)
+    chunks.extend(profile.generic_domain_terms)
+    chunks.extend(profile.infrastructure_terms)
+    for values in profile.domain_signals.values():
+        chunks.extend(values)
+    return " ".join(chunks)
 
 
 def _contains_phrase(haystack: str, phrase: str) -> bool:
@@ -219,7 +257,23 @@ def _explanation(similarity_type: str, risk: str, specific: list[str], generic: 
     return "No meaningful overlap found in the available metadata."
 
 
+def score_profiles(app_profile: ConceptProfile, metadata_profile: ConceptProfile, app_text: str = "", metadata_raw_text: str = "") -> dict:
+    app_ids = _identifiers(" ".join([app_text, _profile_text(app_profile)]))
+    metadata_ids = _identifiers(" ".join([metadata_raw_text, _profile_text(metadata_profile)]))
+    exact_ids = sorted(app_ids & metadata_ids)
+    if exact_ids:
+        return _exact_identifier_result(exact_ids)
+    terms: list[str] = []
+    for values in app_profile.specific_groups().values():
+        terms.extend(values)
+    metadata_text_value = _profile_text(metadata_profile)
+    return score_result(_dedupe(terms), metadata_text_value, metadata_raw_text)
+
+
 def score_result(terms: list[str], title: str, abstract: str = "", product_or_acronym: str = "") -> dict:
+    exact_ids = sorted(_identifiers(" ".join(terms)) & _identifiers(f"{title} {abstract}"))
+    if exact_ids:
+        return _exact_identifier_result(exact_ids)
     haystack = normalise(f"{title} {abstract}")
     matches = matched_concepts(terms, title, abstract)
     generic = _generic_matches(terms, haystack)

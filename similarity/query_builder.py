@@ -7,6 +7,13 @@ from schemas import ApplicationFacts, NOT_EXPLICITLY_STATED, SimilarityQuery
 MAX_QUERY_TERMS = 8
 MAX_TERM_CHARS = 60
 
+IDENTIFIER_PATTERNS = (
+    r"\b(?:US|EP|WO)\s?\d{6,}[A-Z0-9]*\b",
+    r"\bAI[_\-\s]?AWARD\d{3,}\b",
+    r"\bNIHR\d{4,}\b",
+    r"\b[A-Z]{2,}[_-][A-Z0-9]{3,}\b",
+)
+
 GENERIC_DOCUMENT_TERMS = {
     "the", "a", "an", "it", "this", "we", "our", "early", "earlier", "new", "novel", "current", "clear", "named",
     "uploaded", "upload", "file", "document", "docx", "pdf", "txt", "training", "dummy", "application", "plain",
@@ -15,6 +22,8 @@ GENERIC_DOCUMENT_TERMS = {
     "draft", "report", "template", "playbook", "guidance", "work", "package", "task", "month", "milestones",
     "milestone", "recruitment", "retention", "fidelity", "interviews", "reduc", "reduce", "avoidable", "patients", "people", "adults",
     "older adults", "community", "nhs", "rehabilitation", "detection", "support", "device", "platform", "system",
+    "endpoint", "endpoints", "primary endpoint", "secondary endpoint", "outcome", "outcomes",
+    "related incidents", "12-month decision model", "decision model", "cost model", "decision-support",
     "for training use only", "fictional example application", "training use only",
 }
 
@@ -22,7 +31,7 @@ NOISE_PHRASES = [
     "for training use only", "fictional example application", "training use only", "dummy application",
     "this project will", "many people do", "falls can seriously", "milestones month",
 ]
-GENERIC_ACRONYMS = {"SUS", "PPI", "PPIE", "NHS", "NIHR", "QALY", "EQ-5D", "EQ-5D-5L"}
+GENERIC_ACRONYMS = {"SUS", "PPI", "PPIE", "NHS", "NIHR", "QALY", "EQ-5D", "EQ-5D-5L", "PDA"}
 VALID_SHORT_ACRONYMS = {"AI", "IP", "ECG"}
 TECH_SUFFIXES = (
     "imaging", "assessment", "engine", "algorithm", "platform", "software", "device", "sensor", "model",
@@ -33,6 +42,29 @@ FUNCTION_SUFFIXES = ("detection", "prediction", "monitoring", "prevention", "reh
 
 def normalise(term: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9 +#\-/]", " ", str(term).lower())).strip()
+
+
+def _canonical_identifier(value: str) -> str:
+    item = re.sub(r"\s+", "", value.strip()) if re.match(r"^(?:US|EP|WO)\s?\d", value.strip(), re.I) else value.strip()
+    item = re.sub(r"AI[_\-\s]?AWARD", "AI_AWARD", item, flags=re.I)
+    return item.upper() if re.search(r"^(?:US|EP|WO|AI_|NIHR|[A-Z]{2,}[_-])", item, re.I) else item
+
+
+def _identifier_phrases(value: str) -> list[str]:
+    phrases: list[str] = []
+    for idx, pattern in enumerate(IDENTIFIER_PATTERNS):
+        flags = 0 if idx == len(IDENTIFIER_PATTERNS) - 1 else re.I
+        for match in re.finditer(pattern, str(value or ""), flags):
+            phrases.append(_canonical_identifier(match.group(0)))
+    return list(dict.fromkeys(phrases))
+
+
+def _looks_like_identifier(value: str) -> bool:
+    cleaned = _clean(value) if "_clean" in globals() else str(value or "").strip()
+    return any(
+        re.fullmatch(pattern, cleaned, 0 if idx == len(IDENTIFIER_PATTERNS) - 1 else re.I)
+        for idx, pattern in enumerate(IDENTIFIER_PATTERNS)
+    )
 
 
 def is_generic_term(term: str) -> bool:
@@ -75,6 +107,8 @@ def _is_demographic_or_context_only(value: str) -> bool:
 
 def _valid_query_concept(value: str) -> bool:
     value = _clean(value)
+    if _looks_like_identifier(value):
+        return True
     key = normalise(value)
     words = key.split()
     if not value or value == NOT_EXPLICITLY_STATED or is_generic_term(value):
@@ -105,6 +139,8 @@ def _dedupe_add(candidates: list[str], value: str) -> None:
         existing_key = normalise(existing)
         if key == existing_key:
             return
+        if _looks_like_identifier(existing) or _looks_like_identifier(value):
+            continue
         useful_suffix = any(key.endswith(normalise(suffix)) for suffix in TECH_SUFFIXES + FUNCTION_SUFFIXES)
         if key in existing_key and len(key.split()) > 1:
             if useful_suffix and len(key.split()) <= len(existing_key.split()):
@@ -146,6 +182,9 @@ def _capitalised_or_acronym_phrases(value: str) -> list[str]:
     phrases: list[str] = []
     for m in re.finditer(r"\b[A-Z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)+\b|\b[A-Z][A-Z0-9]{2,12}\b", value):
         phrases.append(m.group(0))
+    if len(value.split()) <= 6:
+        for m in re.finditer(r"\b[A-Z][a-z][A-Za-z0-9]{2,20}\b", value):
+            phrases.append(m.group(0))
     return phrases
 
 
@@ -154,13 +193,16 @@ def _concepts_from_value(value: str) -> list[str]:
     if not value or value == NOT_EXPLICITLY_STATED:
         return []
     concepts: list[str] = []
+    identifiers = _identifier_phrases(value)
+    for phrase in identifiers:
+        _dedupe_add(concepts, phrase)
     for phrase in _capitalised_or_acronym_phrases(value):
         _dedupe_add(concepts, phrase)
     for m in re.finditer(r"\b[A-Za-z0-9+#-]*spectral\s+[A-Za-z0-9+#-]+\s+imaging\b", value, re.I):
         _dedupe_add(concepts, m.group(0))
     for phrase in _suffix_phrases(value, TECH_SUFFIXES + FUNCTION_SUFFIXES):
         _dedupe_add(concepts, phrase)
-    if not _sentence_like(value) and not re.search(r"[,;]", value):
+    if not identifiers and not _sentence_like(value) and not re.search(r"[,;]", value):
         _dedupe_add(concepts, value)
     for phrase in _clinical_problem_phrases(value):
         # Only keep broad clinical/context phrases when they include a specific modifier.
@@ -175,7 +217,7 @@ def _concepts_from_value(value: str) -> list[str]:
 def _short_concepts_from_text(snippet: str) -> list[str]:
     snippet = _clean(snippet[:1500])
     concepts: list[str] = []
-    for phrase in _capitalised_or_acronym_phrases(snippet) + _suffix_phrases(snippet, TECH_SUFFIXES + FUNCTION_SUFFIXES):
+    for phrase in _identifier_phrases(snippet) + _capitalised_or_acronym_phrases(snippet) + _suffix_phrases(snippet, TECH_SUFFIXES + FUNCTION_SUFFIXES):
         _dedupe_add(concepts, phrase)
     return concepts[:5]
 
@@ -201,7 +243,16 @@ def _cap_terms(primary: list[str], secondary: list[str]) -> tuple[list[str], lis
 def build_similarity_query(facts: ApplicationFacts, snippets: list[str] | None = None) -> SimilarityQuery:
     primary: list[str] = []
     secondary: list[str] = []
-    for field in ["product_or_intervention", "acronym_or_short_name", "technology_type", "clinical_or_social_care_need", "mechanism_of_action"]:
+    for field in [
+        "project_title",
+        "product_or_intervention",
+        "acronym_or_short_name",
+        "technology_type",
+        "clinical_or_social_care_need",
+        "mechanism_of_action",
+        "market_or_impact_evidence",
+        "references_detected",
+    ]:
         for concept in _concepts_from_value(str(getattr(facts, field, NOT_EXPLICITLY_STATED))):
             _dedupe_add(primary, concept)
     # Population/setting are weak: keep only if tied to a specific problem or technical phrase.
