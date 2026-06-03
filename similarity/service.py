@@ -78,14 +78,7 @@ def run_similarity_service(facts: ApplicationFacts, settings: Settings, run_simi
             result = {"source": source, "status": "error", "matches_found": 0, "top_match": "", "score": 0.0, "risk": "NONE", "why_relevant": _clean_api_error(exc), "link_or_id": ""}
         raw_records = int(result.get("matches_found", 0) or 0)
         title = str(result.get("top_match", ""))
-        raw = result.get("raw", "")
-        if isinstance(raw, dict):
-            title = str(raw.get("title") or raw.get("project_title") or title)
-            abstract = str(raw.get("abstract") or raw.get("snippet") or raw.get("description") or raw.get("metadata_text") or "")
-        else:
-            abstract = str(raw or "")
-        metadata_profile = extract_metadata_concepts(title, abstract, raw)
-        scored = score_profiles(app_profile, metadata_profile, title=title, abstract=abstract, raw=raw)
+        scored = score_result(terms, title, str(result.get("raw", "")), facts.acronym_or_short_name)
         result.update(scored)
         result["raw_records_returned"] = raw_records
         result["matches_found"] = 1 if scored["score"] > 0 and scored["risk"] != "NONE" else 0

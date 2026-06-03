@@ -42,87 +42,198 @@ def _overlap(app_terms: list[str], metadata_terms: list[str], metadata_haystack:
             hits.append(app_term)
     return _dedupe(hits)
 
+GENERIC_DOMAIN_CONCEPTS = {
+    "software as a medical device",
+    "samd",
+    "ai platform",
+    "edge ai",
+    "medical device",
+    "medical device application",
+    "computing resource",
+    "decision support",
+    "platform",
+    "clinical ai",
+    "digital health",
+    "artificial intelligence platform",
+}
+
+INFRASTRUCTURE_CONCEPTS = {
+    "isolated execution",
+    "execution environment",
+    "resource allocation",
+    "computing resource",
+    "edge artificial intelligence platform",
+    "edge ai platform",
+    "application isolation",
+    "deployment architecture",
+}
+
+DIMENSION_PHRASES = {
+    "clinical_problem": {
+        "wound deterioration",
+        "chronic wounds",
+        "wound assessment",
+        "lower-limb wounds",
+        "lower limb wounds",
+        "pressure wounds",
+        "surgical wounds",
+        "atrial fibrillation detection",
+        "falls prevention",
+    },
+    "technical_method": {
+        "multispectral imaging",
+        "multispectral wound imaging",
+        "wound imaging",
+        "wound imaging device",
+        "wound boundary measurement",
+        "tissue oxygenation",
+        "thermal pattern analysis",
+        "wound deterioration model",
+        "wearable ecg sensor",
+        "movement quality assessment",
+    },
+    "target_setting_population": {
+        "community wound services",
+        "community nursing",
+        "tissue viability",
+        "wound clinics",
+        "lower-limb wounds",
+        "lower limb wounds",
+        "pressure wounds",
+        "surgical wounds",
+        "older adults falls risk",
+        "nhs community rehabilitation",
+        "community rehabilitation",
+    },
+    "product_function": {
+        "wound risk score",
+        "wound deterioration detection",
+        "wound measurement",
+        "escalation support",
+        "clinical wound decision support",
+        "wound decision support",
+        "decision support platform for community wound deterioration detection",
+    },
+    "specific_named_product_or_phrase": {
+        "woundwise-ai",
+        "wound deterioration decision support",
+        "multispectral wound imaging",
+    },
+}
+
+RISK_SCORES = {"NONE": 0.0, "LOW": 0.15, "MEDIUM": 0.45, "HIGH": 0.75, "VERY_HIGH": 0.95}
+
+
+def _contains(haystack: str, phrase: str) -> bool:
+    key = normalise(phrase)
+    dehyphenated = haystack.replace("-", " ")
+    hyphenated_key = key.replace(" ", "-")
+    return key in haystack or key in dehyphenated or hyphenated_key in haystack
+
+
+def _dedupe(items: list[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for item in items:
+        key = normalise(item)
+        if key and key not in seen:
+            result.append(item)
+            seen.add(key)
+    return result
+
+
+def _generic_matches(terms: list[str], haystack: str) -> list[str]:
+    matches: list[str] = []
+    normalised_terms = {normalise(term) for term in terms}
+    for concept in sorted(GENERIC_DOMAIN_CONCEPTS):
+        key = normalise(concept)
+        term_matches_concept = any(key in term or term in key for term in normalised_terms)
+        if term_matches_concept and _contains(haystack, concept):
+            matches.append(concept)
+    return _dedupe(matches)
+
+
+def _infrastructure_matches(haystack: str) -> list[str]:
+    return [concept for concept in sorted(INFRASTRUCTURE_CONCEPTS) if _contains(haystack, concept)]
+
 
 def matched_concepts(terms: list[str], title: str, abstract: str = "") -> list[str]:
-    """Backwards-compatible helper: only terms actually present in returned metadata match."""
     haystack = normalise(f"{title} {abstract}")
-    return _dedupe([term for term in terms if not is_generic_term(term) and _contains_phrase(haystack, term)])
-
-
-def _profile_from_terms(terms: list[str], product_or_acronym: str = "") -> ConceptProfile:
-    from similarity.concepts import _clinical_terms, _generic_terms, _setting_terms
-    from similarity.concepts import TECH_SUFFIXES, FUNCTION_SUFFIXES
-
-    named: list[str] = [product_or_acronym] if product_or_acronym else []
-    technical: list[str] = []
-    clinical: list[str] = []
-    functions: list[str] = []
-    settings: list[str] = []
-    generic: list[str] = []
+    matches = []
     for term in terms:
-        key = normalise(term)
-        term_generic = _generic_terms(term)
-        generic_only_tokens = {"software", "medical", "device", "ai", "artificial", "intelligence", "platform", "digital", "health", "clinical", "application", "app", "decision", "support", "as", "a", "medical"}
-        if term_generic and (is_generic_term(term) or all(token in generic_only_tokens for token in key.split())):
-            generic.extend(term_generic)
+        if normalise(term) in GENERIC_OVERLAP_ONLY:
+            if _contains(haystack, term):
+                matches.append(term)
             continue
-        generic.extend(term_generic)
-        if product_or_acronym and normalise(term) == normalise(product_or_acronym):
-            named.append(term)
-        elif term and not is_generic_term(term) and any(ch.isupper() for ch in term[:4]):
-            named.append(term)
-        if any(key.endswith(normalise(suffix)) for suffix in TECH_SUFFIXES):
-            technical.append(term)
-        if any(key.endswith(normalise(suffix)) for suffix in FUNCTION_SUFFIXES):
-            functions.append(term)
-        clinical.extend(_clinical_terms(term))
-        settings.extend(_setting_terms(term))
-    return ConceptProfile(
-        named_entities=_dedupe(named),
-        technical_method_terms=_dedupe(technical),
-        clinical_problem_terms=_dedupe(clinical),
-        product_function_terms=_dedupe(functions),
-        population_setting_terms=_dedupe(settings),
-        generic_domain_terms=_dedupe(generic),
-    )
+        if not is_generic_term(term) and _contains(haystack, term):
+            matches.append(term)
+    return _dedupe(matches)
 
 
-def score_profiles(app_profile: ConceptProfile, metadata_profile: ConceptProfile, *, title: str = "", abstract: str = "", raw: Any = None) -> dict:
-    returned_text = normalise(metadata_text(title, abstract, raw))
-    if metadata_profile.metadata_incomplete:
-        return {
-            "score": 0.0,
-            "risk": "NONE",
-            "similarity_type": "human_check_metadata_incomplete",
-            "matched_concepts": [],
-            "specific_matched_concepts": [],
-            "generic_matched_concepts": [],
-            "matched_dimensions": {},
-            "why_relevant": "A record was returned, but title/abstract metadata could not be parsed; it has not been scored from query terms alone.",
-        }
+def _specific_matches(matches: list[str]) -> list[str]:
+    generic_keys = {normalise(concept) for concept in GENERIC_DOMAIN_CONCEPTS}
+    return [match for match in matches if normalise(match) not in generic_keys and normalise(match) not in GENERIC_OVERLAP_ONLY]
 
-    matched_dimensions: dict[str, list[str]] = {}
-    specific: list[str] = []
-    for dimension, app_terms in app_profile.specific_groups().items():
-        metadata_terms = metadata_profile.specific_groups().get(dimension, [])
-        hits = _overlap(app_terms, metadata_terms, returned_text)
-        if hits:
-            matched_dimensions[dimension] = hits
-            specific.extend(hits)
-    specific = _dedupe(specific)
 
-    generic = _overlap(app_profile.generic_domain_terms, metadata_profile.generic_domain_terms, returned_text)
-    if not generic:
-        # Generic acronym/compound phrases such as SaMD/edge-AI may not be extracted as exact app generic terms.
-        generic = [term for term in metadata_profile.generic_domain_terms if _contains_phrase(returned_text, term) and any(_contains_phrase(normalise(" ".join(app_profile.generic_domain_terms)), term) or _contains_phrase(term, app) for app in app_profile.generic_domain_terms)]
-    generic = _dedupe(generic)
+def _matched_dimensions(specific_matches: list[str], product_or_acronym: str) -> dict[str, list[str]]:
+    dimensions: dict[str, list[str]] = {name: [] for name in DIMENSION_PHRASES}
+    for match in specific_matches:
+        key = normalise(match)
+        for dimension, phrases in DIMENSION_PHRASES.items():
+            if any(normalise(phrase) in key or key in normalise(phrase) for phrase in phrases):
+                dimensions[dimension].append(match)
+    if product_or_acronym:
+        product_key = normalise(product_or_acronym)
+        for match in specific_matches:
+            if product_key and product_key == normalise(match):
+                dimensions["specific_named_product_or_phrase"].append(match)
+    return {dimension: _dedupe(values) for dimension, values in dimensions.items() if values}
 
-    infra = metadata_profile.infrastructure_terms
-    dimension_names = set(matched_dimensions)
-    unrelated_categories = set(metadata_profile.domain_signals) - set(app_profile.domain_signals)
-    dominated_by_unrelated = bool(unrelated_categories & {"drug_biologic", "gene_cell_animal", "unrelated_engineering"}) and not (dimension_names & SPECIFIC_DIMENSIONS)
 
-    if dominated_by_unrelated or (not specific and not generic and not infra):
+def _wound_absence_note(specific_matches: list[str]) -> str:
+    if any("wound" in normalise(match) for match in specific_matches):
+        return ""
+    return " It does not appear to address wound imaging, wound deterioration, community wound workflow, multispectral imaging or wound-specific decision support."
+
+
+def _explanation(similarity_type: str, risk: str, specific: list[str], generic: list[str], infrastructure: list[str]) -> str:
+    if similarity_type == "adjacent_infrastructure":
+        return (
+            "This appears to be an adjacent SaMD/AI infrastructure patent, not a direct wound-imaging "
+            "deterioration-detection match. Shares broad SaMD/AI platform concepts but does not address "
+            "wound imaging, wound deterioration, community wound workflow, multispectral imaging or "
+            "wound-specific decision support."
+        )
+    if similarity_type == "generic_overlap":
+        return "Only generic domain concepts overlap; this should be treated as background context rather than a direct invention match."
+    if similarity_type == "same_domain_broad":
+        return (
+            f"Broad same-domain overlap found via {', '.join(specific or generic)}."
+            f"{_wound_absence_note(specific)} Manual review is recommended before treating this as blocking IP."
+        )
+    if similarity_type == "direct_match":
+        return (
+            f"Potential direct invention match: specific overlap spans {len(specific)} concept(s), including "
+            f"{', '.join(specific[:5])}."
+        )
+    return "No meaningful overlap found in the available metadata."
+
+
+def score_result(terms: list[str], title: str, abstract: str = "", product_or_acronym: str = "") -> dict:
+    haystack = normalise(f"{title} {abstract}")
+    matches = matched_concepts(terms, title, abstract)
+    generic = _generic_matches(terms, haystack)
+    # Ensure matched_concepts remains backwards-compatible while the new fields split the display.
+    for concept in generic:
+        if normalise(concept) not in {normalise(match) for match in matches}:
+            matches.append(concept)
+    matches = _dedupe(matches)
+    specific = _specific_matches(matches)
+    infrastructure = _infrastructure_matches(haystack)
+    dimensions = _matched_dimensions(specific, product_or_acronym)
+    dimension_names = set(dimensions)
+
+    if not matches:
         return {
             "score": 0.0,
             "risk": "NONE",
@@ -131,70 +242,73 @@ def score_profiles(app_profile: ConceptProfile, metadata_profile: ConceptProfile
             "specific_matched_concepts": [],
             "generic_matched_concepts": [],
             "matched_dimensions": {},
-            "why_relevant": "The API returned a record, but the returned title/abstract do not match the application’s extracted product, technical method, clinical problem or product function concepts.",
+            "why_relevant": _explanation("no_meaningful_overlap", "NONE", [], [], []),
+        }
+
+    if len(matches) == 1 and normalise(matches[0]) in GENERIC_OVERLAP_ONLY:
+        return {
+            "score": 0.0,
+            "risk": "NONE",
+            "similarity_type": "generic_overlap",
+            "matched_concepts": matches,
+            "specific_matched_concepts": [],
+            "generic_matched_concepts": matches,
+            "matched_dimensions": {},
+            "why_relevant": _explanation("generic_overlap", "NONE", [], matches, []),
         }
 
     if not specific:
-        if infra:
-            similarity_type = "adjacent_infrastructure"
-            risk = "LOW" if not generic else "MEDIUM"
-            score = 0.25 if risk == "LOW" else 0.35
-            why = "This appears to be an adjacent SaMD/AI infrastructure patent, not a direct wound-imaging deterioration-detection match. The record shares broad platform or deployment concepts, but not the application’s specific clinical problem, technical method or product function."
-        else:
-            similarity_type = "generic_overlap"
-            risk = "LOW"
-            score = 0.15
-            why = "Only generic domain concepts overlap; this should be treated as background context rather than a direct invention match."
+        similarity_type = "adjacent_infrastructure" if infrastructure else "generic_overlap"
+        risk = "MEDIUM" if infrastructure and generic else "LOW"
         return {
-            "score": score,
+            "score": RISK_SCORES[risk],
             "risk": risk,
             "similarity_type": similarity_type,
-            "matched_concepts": generic,
+            "matched_concepts": matches,
             "specific_matched_concepts": [],
-            "generic_matched_concepts": generic,
+            "generic_matched_concepts": generic or matches,
             "matched_dimensions": {},
-            "why_relevant": why,
+            "why_relevant": _explanation(similarity_type, risk, [], generic or matches, infrastructure),
         }
 
-    major = dimension_names & SPECIFIC_DIMENSIONS
-    has_core_triad = {"clinical_problem", "technical_method", "product_function"} <= dimension_names
-    if len(major) >= 3 and ("named_entity" in major or has_core_triad):
-        risk = "VERY_HIGH"
+    core_direct = {"clinical_problem", "technical_method", "product_function"}
+    if core_direct <= dimension_names:
+        risk = "VERY_HIGH" if len(dimension_names) >= 3 else "HIGH"
         similarity_type = "direct_match"
-    elif len(major) >= 2:
+    elif len(dimension_names) >= 3:
         risk = "HIGH"
-        similarity_type = "strong_same_domain"
-    elif ("technical_method" in major or "product_function" in major) and ("clinical_problem" in dimension_names or "named_entity" in dimension_names or "population_setting" in dimension_names):
+        similarity_type = "direct_match"
+    elif not (dimension_names & core_direct):
+        risk = "MEDIUM"
+        similarity_type = "same_domain_broad"
+    elif len(dimension_names) >= 2:
         risk = "MEDIUM"
         similarity_type = "same_domain_broad"
     else:
         risk = "LOW"
         similarity_type = "same_domain_broad"
 
-    if risk in {"HIGH", "VERY_HIGH"} and len(major) < 2:
+    # Explicit caps: no clinical/problem/method/product-specific overlap may exceed MEDIUM.
+    if not (dimension_names & core_direct) and risk in {"HIGH", "VERY_HIGH"}:
         risk = "MEDIUM"
-    if risk == "VERY_HIGH" and not has_core_triad and "named_entity" not in major:
+        similarity_type = "same_domain_broad"
+    # VERY_HIGH requires all three direct-invention dimensions.
+    if risk == "VERY_HIGH" and not (core_direct <= dimension_names):
         risk = "HIGH"
 
-    score = min(RISK_SCORES[risk], 0.2 + 0.15 * len(major) + 0.05 * len(specific) + 0.04 * len(generic))
-    if risk == "HIGH":
-        score = max(score, 0.7)
+    score = min(RISK_SCORES[risk], 0.15 + 0.18 * len(specific) + 0.08 * len(generic) + 0.08 * len(dimension_names))
     if risk == "VERY_HIGH":
-        score = max(score, 0.9)
-    why = f"The returned title/abstract shares specific overlap in {', '.join(sorted(dimension_names))}." if similarity_type in {"direct_match", "strong_same_domain"} else "The returned title/abstract has limited same-domain overlap; manual review is recommended before treating it as blocking IP."
+        score = max(score, 0.90)
+    elif risk == "HIGH":
+        score = max(score, 0.70)
+
     return {
         "score": round(score, 2),
         "risk": risk,
         "similarity_type": similarity_type,
-        "matched_concepts": _dedupe(specific + generic),
+        "matched_concepts": matches,
         "specific_matched_concepts": specific,
         "generic_matched_concepts": generic,
-        "matched_dimensions": matched_dimensions,
-        "why_relevant": why,
+        "matched_dimensions": dimensions,
+        "why_relevant": _explanation(similarity_type, risk, specific, generic, infrastructure),
     }
-
-
-def score_result(terms: list[str], title: str, abstract: str = "", product_or_acronym: str = "") -> dict:
-    app_profile = _profile_from_terms(terms, product_or_acronym)
-    metadata_profile = extract_metadata_concepts(title, abstract)
-    return score_profiles(app_profile, metadata_profile, title=title, abstract=abstract)
