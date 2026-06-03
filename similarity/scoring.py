@@ -143,6 +143,7 @@ INFRASTRUCTURE_CONCEPTS = {
 }
 
 DIMENSION_PHRASES = {
+    "clinical_condition": CLINICAL_CONDITION_CONCEPTS,
     "clinical_problem": {
         "wound deterioration",
         "chronic wounds",
@@ -160,6 +161,14 @@ DIMENSION_PHRASES = {
         "wound imaging",
         "wound imaging device",
         "wound boundary measurement",
+        "thermal imaging",
+        "temperature condition index",
+        "foot thermal scans",
+        "mobile thermal camera",
+        "wound image segmentation",
+        "wound healing prediction",
+        "wound pixels",
+        "non-wound pixels",
         "tissue oxygenation",
         "thermal pattern analysis",
         "wound deterioration model",
@@ -182,6 +191,14 @@ DIMENSION_PHRASES = {
     "product_function": {
         "wound risk score",
         "wound deterioration detection",
+        "detection",
+        "early diabetic foot ulcer detection",
+        "wound care recommendation",
+        "personalised wound care",
+        "personalized wound care",
+        "risk categorisation",
+        "risk categorization",
+        "screening frequency recommendation",
         "wound measurement",
         "escalation support",
         "clinical wound decision support",
@@ -249,13 +266,22 @@ def _specific_matches(matches: list[str]) -> list[str]:
     return [match for match in matches if normalise(match) not in generic_keys and normalise(match) not in GENERIC_OVERLAP_ONLY]
 
 
-def _matched_dimensions(specific_matches: list[str], product_or_acronym: str) -> dict[str, list[str]]:
+def _matched_dimensions(specific_matches: list[str], product_or_acronym: str, all_terms: list[str] | None = None, haystack: str = "") -> dict[str, list[str]]:
     dimensions: dict[str, list[str]] = {name: [] for name in DIMENSION_PHRASES}
     for match in specific_matches:
         key = normalise(match)
         for dimension, phrases in DIMENSION_PHRASES.items():
             if any(normalise(phrase) in key or key in normalise(phrase) for phrase in phrases):
                 dimensions[dimension].append(match)
+        if any(normalise(phrase) in key or key in normalise(phrase) for phrase in TECHNICAL_METHOD_CONCEPTS):
+            dimensions["technical_method"].append(match)
+        if any(normalise(phrase) in key or key in normalise(phrase) for phrase in PRODUCT_FUNCTION_CONCEPTS):
+            dimensions["product_function"].append(match)
+        if any(normalise(phrase) in key or key in normalise(phrase) for phrase in CLINICAL_CONDITION_CONCEPTS):
+            dimensions["clinical_condition"].append(match)
+    if all_terms and re.search(r"\bdetection\b", haystack) and any("detection" in normalise(term) for term in all_terms):
+        if dimensions.get("clinical_condition") or any("ulcer" in normalise(match) or "wound" in normalise(match) for match in specific_matches):
+            dimensions["product_function"].append("detection")
     if product_or_acronym:
         product_key = normalise(product_or_acronym)
         for match in specific_matches:
@@ -320,7 +346,7 @@ def score_result(terms: list[str], title: str, abstract: str = "", product_or_ac
     matches = _dedupe(matches)
     specific = _specific_matches(matches)
     infrastructure = _infrastructure_matches(haystack)
-    dimensions = _matched_dimensions(specific, product_or_acronym)
+    dimensions = _matched_dimensions(specific, product_or_acronym, terms, haystack)
     dimension_names = set(dimensions)
 
     if infrastructure and not _has_wound_specific_metadata(f"{title} {abstract}"):
@@ -371,33 +397,31 @@ def score_result(terms: list[str], title: str, abstract: str = "", product_or_ac
             "why_relevant": "Only generic domain, regulatory-readiness or infrastructure concepts overlap; this should be treated as background context rather than a direct invention match.",
         }
 
-    core_direct = {"clinical_problem", "technical_method", "product_function"}
-    if core_direct <= dimension_names:
-        risk = "VERY_HIGH" if len(dimension_names) >= 3 else "HIGH"
-        similarity_type = "direct_match"
-    elif len(dimension_names) >= 3:
+    condition_dims = {"clinical_condition", "clinical_problem", "target_setting_population"}
+    invention_dims = {"technical_method", "product_function", "specific_named_product_or_phrase"}
+    if dimension_names and dimension_names <= condition_dims:
+        risk = "LOW"
+        similarity_type = "condition_only_overlap"
+    elif {"clinical_condition", "technical_method", "product_function"} <= dimension_names or {"clinical_problem", "technical_method", "product_function"} <= dimension_names:
         risk = "HIGH"
         similarity_type = "direct_match"
-    elif not (dimension_names & core_direct):
+    elif "technical_method" in dimension_names and "product_function" in dimension_names:
+        risk = "HIGH" if (dimension_names & {"clinical_condition", "clinical_problem"}) else "MEDIUM"
+        similarity_type = "direct_match" if risk == "HIGH" else "same_domain_broad"
+    elif dimension_names & invention_dims and dimension_names & condition_dims:
         risk = "MEDIUM"
         similarity_type = "same_domain_broad"
-    elif len(dimension_names) >= 2:
-        risk = "MEDIUM"
+    elif dimension_names & invention_dims:
+        risk = "LOW"
         similarity_type = "same_domain_broad"
     else:
         risk = "LOW"
-        similarity_type = "same_domain_broad"
-
-    # Explicit caps: no clinical/problem/method/product-specific overlap may exceed MEDIUM.
-    if not (dimension_names & core_direct) and risk in {"HIGH", "VERY_HIGH"}:
-        risk = "MEDIUM"
-        similarity_type = "same_domain_broad"
-    # VERY_HIGH requires all three direct-invention dimensions.
-    if risk == "VERY_HIGH" and not (core_direct <= dimension_names):
-        risk = "HIGH"
+        similarity_type = "condition_only_overlap"
 
     score = min(RISK_SCORES[risk], 0.15 + 0.18 * len(specific) + 0.08 * len(generic) + 0.08 * len(dimension_names))
-    if risk == "VERY_HIGH":
+    if similarity_type == "condition_only_overlap":
+        score = min(score, 0.20)
+    elif risk == "VERY_HIGH":
         score = max(score, 0.90)
     elif risk == "HIGH":
         score = max(score, 0.70)

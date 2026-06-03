@@ -71,6 +71,10 @@ def is_generic_term(term: str) -> bool:
     cleaned = normalise(term)
     if not cleaned or len(cleaned) < 3:
         return True
+    if re.fullmatch(r"trl(?:\s+\d+)?(?:\s+to\s+trl?\s*\d+)?", cleaned):
+        return True
+    if re.fullmatch(r"(?:iso\s*)?(?:13485|14971)", cleaned):
+        return True
     if cleaned in GENERIC_DOCUMENT_TERMS:
         return True
     if cleaned.upper() in GENERIC_ACRONYMS:
@@ -92,6 +96,24 @@ def _clean(term: str) -> str:
 
 def _sentence_like(value: str) -> bool:
     return bool(re.search(r"[.!?]", value) or len(value.split()) > 6 or re.search(r"\b(?:will|designed to|participants? aged|include|includes|across)\b", value, re.I))
+
+
+def _recognised_product_or_acronym(value: str) -> bool:
+    cleaned = _clean(value)
+    if len(cleaned.split()) > 2:
+        return False
+    if re.fullmatch(r"[A-Z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*", cleaned):
+        return True
+    return bool(re.fullmatch(r"[A-Z0-9-]{3,12}", cleaned))
+
+
+def _looks_like_sentence_fragment(value: str) -> bool:
+    key = normalise(value)
+    if len(str(value).split()) > 4:
+        return True
+    if re.search(r"\b(is|are|was|were|will|would|could|should|consume|create|reduce|reduced|improve|support|needs|needed|designed|including)\b", key):
+        return True
+    return False
 
 
 def _is_demographic_or_context_only(value: str) -> bool:
@@ -176,6 +198,25 @@ def _suffix_phrases(value: str, suffixes: tuple[str, ...]) -> list[str]:
     return phrases
 
 
+def _wound_specific_invention_phrases(value: str) -> list[str]:
+    patterns = (
+        r"wound\s+healing\s+prediction",
+        r"wound\s+image\s+segmentation",
+        r"non-wound\s+pixels",
+        r"wound\s+pixels",
+        r"personali[sz]ed\s+wound\s+care",
+        r"wound\s+care\s+recommendation",
+        r"wound\s+deterioration\s+detection",
+        r"temperature\s+condition\s+index",
+        r"thermal\s+imaging",
+    )
+    phrases: list[str] = []
+    for pattern in patterns:
+        for match in re.finditer(rf"\b{pattern}\b", value, re.I):
+            phrases.append(match.group(0).strip(" .;:,/-"))
+    return phrases
+
+
 def _clinical_problem_phrases(value: str) -> list[str]:
     phrases: list[str] = []
     wound_anchors = (
@@ -215,6 +256,8 @@ def _concepts_from_value(value: str) -> list[str]:
         _dedupe_add(concepts, phrase)
     for phrase in _capitalised_or_acronym_phrases(value):
         _dedupe_add(concepts, phrase)
+    for phrase in _wound_specific_invention_phrases(value):
+        _dedupe_add(concepts, phrase)
     for m in re.finditer(r"\b[A-Za-z0-9+#-]*spectral\s+[A-Za-z0-9+#-]+\s+imaging\b", value, re.I):
         _dedupe_add(concepts, m.group(0))
     for phrase in _suffix_phrases(value, TECH_SUFFIXES + FUNCTION_SUFFIXES):
@@ -239,7 +282,32 @@ def _short_concepts_from_text(snippet: str) -> list[str]:
     return concepts[:5]
 
 
+def _term_priority(term: str) -> tuple[int, str]:
+    key = normalise(term)
+    if re.fullmatch(r"\bAI[_\-\s]?AWARD\d{3,}\b", term, re.I):
+        return (0, key)
+    if re.fullmatch(r"\bNIHR\d{4,}\b", term, re.I):
+        return (1, key)
+    if re.fullmatch(r"\b(?:US|EP|WO)\s?\d{6,}[A-Z0-9]*\b", term, re.I):
+        return (2, key)
+    if key in {"woubot", "woucare-ai", "woucare ai", "woundwise-ai", "woundwise"}:
+        return (3, key)
+    invention_order = ["wound healing prediction", "wound image segmentation", "wound pixels", "non-wound pixels", "personalised wound care", "personalized wound care", "wound care recommendation", "wound deterioration detection", "thermal imaging", "temperature condition index", "multispectral wound imaging", "wound imaging device", "multispectral imaging device"]
+    for idx, marker in enumerate(invention_order):
+        if marker in key:
+            return (4, f"{idx:02d}-{key}")
+    if any(marker in key for marker in ["diabetic foot ulcer", "venous leg ulcer", "chronic lower-limb wound", "lower-limb wound", "chronic wound", "pressure ulcer"]):
+        return (5, key)
+    return (6, key)
+
+
+def _prioritise_terms(terms: list[str]) -> list[str]:
+    return sorted(terms, key=_term_priority)
+
+
 def _cap_terms(primary: list[str], secondary: list[str]) -> tuple[list[str], list[str]]:
+    primary = _prioritise_terms(primary)
+    secondary = _prioritise_terms(secondary)
     capped_primary: list[str] = []
     capped_secondary: list[str] = []
     seen: set[str] = set()

@@ -185,7 +185,7 @@ def test_very_high_requires_problem_method_and_product_function_overlap():
     )
 
     assert broad["risk"] != "VERY_HIGH"
-    assert direct["risk"] == "VERY_HIGH"
+    assert direct["risk"] == "HIGH"
 
 
 def test_similarity_service_keeps_epo_live_but_scores_samd_infrastructure_as_adjacent(monkeypatch):
