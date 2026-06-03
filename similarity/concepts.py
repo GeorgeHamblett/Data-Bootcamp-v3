@@ -61,11 +61,14 @@ CLINICAL_HINTS = (
     "falls", "fall", "balance", "mobility", "pain", "infection", "cancer", "diabetes", "stroke", "frailty",
 )
 SETTING_HINTS = ("community", "clinic", "clinics", "hospital", "nursing", "nhs", "care home", "patients", "adults", "population")
+IDENTIFIER_RE = re.compile(r"\b(?:US|EP|WO)\s?\d{6,}[A-Z0-9]*\b|\bAI[_\-\s]?AWARD\d{3,}\b|\bNIHR\d{4,}\b", re.I)
 
 @dataclass
 class ConceptProfile:
+    exact_identifiers: list[str] = field(default_factory=list)
     named_entities: list[str] = field(default_factory=list)
     technical_method_terms: list[str] = field(default_factory=list)
+    clinical_condition_terms: list[str] = field(default_factory=list)
     clinical_problem_terms: list[str] = field(default_factory=list)
     product_function_terms: list[str] = field(default_factory=list)
     population_setting_terms: list[str] = field(default_factory=list)
@@ -76,13 +79,24 @@ class ConceptProfile:
 
     def specific_groups(self) -> dict[str, list[str]]:
         return {
+            "exact_identifier": self.exact_identifiers,
             "named_entity": self.named_entities,
             "technical_method": self.technical_method_terms,
-            "clinical_problem": self.clinical_problem_terms,
+            "clinical_condition": self.clinical_condition_terms or self.clinical_problem_terms,
             "product_function": self.product_function_terms,
             "population_setting": self.population_setting_terms,
         }
 
+
+
+
+def _identifiers(text: str) -> list[str]:
+    ids: list[str] = []
+    for match in IDENTIFIER_RE.finditer(text or ""):
+        item = match.group(0).upper().replace(" ", "")
+        item = re.sub(r"AI[_\-\s]?AWARD", "AI_AWARD", item, flags=re.I)
+        ids.append(item)
+    return _dedupe_all(ids)
 
 def _dedupe(items: Iterable[str]) -> list[str]:
     seen: set[str] = set()
@@ -199,8 +213,10 @@ def extract_similarity_concepts(facts: ApplicationFacts) -> ConceptProfile:
     setting_text = _text_from_facts(facts, ["target_population", "sites_or_setting"])
     all_text = " ".join([named_text, technical_text, clinical_text, function_text, setting_text])
     return ConceptProfile(
+        exact_identifiers=_identifiers(all_text),
         named_entities=_dedupe([facts.acronym_or_short_name, facts.product_or_intervention, facts.project_title] + _capitalised_entities(named_text)),
         technical_method_terms=_noun_phrases(technical_text, TECH_SUFFIXES),
+        clinical_condition_terms=_clinical_terms(clinical_text),
         clinical_problem_terms=_clinical_terms(clinical_text),
         product_function_terms=_noun_phrases(function_text, FUNCTION_SUFFIXES),
         population_setting_terms=_setting_terms(setting_text),
@@ -214,8 +230,10 @@ def extract_metadata_concepts(title: str = "", abstract: str = "", raw: Any = No
     raw_text = metadata_text(title, abstract, raw)
     title_abstract_missing = not normalise(f"{title} {abstract}")
     return ConceptProfile(
+        exact_identifiers=_identifiers(raw_text),
         named_entities=_capitalised_entities(f"{title} {abstract}"),
         technical_method_terms=_noun_phrases(raw_text, TECH_SUFFIXES),
+        clinical_condition_terms=_clinical_terms(raw_text),
         clinical_problem_terms=_clinical_terms(raw_text),
         product_function_terms=_noun_phrases(raw_text, FUNCTION_SUFFIXES),
         population_setting_terms=_setting_terms(raw_text),
@@ -229,7 +247,24 @@ def extract_metadata_concepts(title: str = "", abstract: str = "", raw: Any = No
 def metadata_text(title: str = "", abstract: str = "", raw: Any = None) -> str:
     chunks = [str(title or ""), str(abstract or "")]
     if isinstance(raw, dict):
-        for key in ("title", "abstract", "snippet", "description", "metadata_text", "applicants", "organisation", "organization"):
+        for key in (
+            "title",
+            "project_title",
+            "abstract",
+            "scientific_abstract",
+            "plain_english_abstract",
+            "snippet",
+            "description",
+            "metadata_text",
+            "acronym",
+            "project_id",
+            "funding_and_awards_link",
+            "applicants",
+            "organisation",
+            "organization",
+            "doc_numbers",
+            "publication-number",
+        ):
             value = raw.get(key)
             if isinstance(value, list):
                 chunks.extend(str(v) for v in value)
