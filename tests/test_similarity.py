@@ -216,3 +216,106 @@ def test_similarity_service_keeps_epo_live_but_scores_samd_infrastructure_as_adj
     assert epo["similarity_type"] == "adjacent_infrastructure"
     assert epo["specific_matched_concepts"] == []
     assert "not a direct wound-imaging" in epo["why_relevant"]
+
+
+def test_identifier_extraction_and_validation_preserves_public_anchors():
+    from similarity.query_builder import _identifier_phrases, _valid_query_concept
+
+    text = "Woubot uses AI_AWARD01723, AI-AWARD01724, NIHR204173 and US20210201479A1."
+    identifiers = _identifier_phrases(text)
+
+    assert "AI_AWARD01723" in identifiers
+    assert "AI_AWARD01724" in identifiers
+    assert "NIHR204173" in identifiers
+    assert "US20210201479A1" in identifiers
+    assert _valid_query_concept("US20210201479A1")
+    assert _valid_query_concept("AI-AWARD01723")
+    assert _valid_query_concept("NIHR204173")
+
+
+def test_woubot_identifier_query_prioritises_exact_anchors_and_excludes_noise():
+    f = ApplicationFacts(
+        project_title="Woubot AI_AWARD01723 NIHR204173 US20210201479A1",
+        product_or_intervention="Woubot personalised wound care",
+        acronym_or_short_name="Woubot",
+        technology_type="wound image segmentation and wound healing prediction",
+        clinical_or_social_care_need="personalised wound care",
+        endpoints=["endpoint", "12-month decision model", "related incidents"],
+    )
+
+    q = build_similarity_query(f)
+    terms = q.primary_terms + q.secondary_terms
+    joined = " ".join(terms).lower()
+
+    assert terms[:4] == ["US20210201479A1", "AI_AWARD01723", "NIHR204173", "Woubot"]
+    assert "wound healing prediction" in joined
+    assert "wound image segmentation" in joined
+    assert "personalised wound care" in joined
+    assert "endpoint" not in joined
+    assert "12-month decision model" not in joined
+    assert "related incidents" not in joined
+
+
+def test_nihr_open_data_list_query_stops_at_first_matching_term(monkeypatch):
+    from similarity.nihr_open_data import search_nihr_open_data
+
+    calls = []
+
+    class Response:
+        def __init__(self, payload):
+            self.payload = payload
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return self.payload
+
+    def fake_get(url, params, headers, timeout):
+        calls.append(params["search"])
+        if params["search"] == "AI_AWARD01723":
+            return Response({"results": [{"project_title": "Woubot award", "project_id": "NIHR204173", "acronym": "AI_AWARD01723"}]})
+        return Response({"results": []})
+
+    monkeypatch.setattr("requests.get", fake_get)
+
+    result = search_nihr_open_data(["Woubot", "AI_AWARD01723", "NIHR204173"], Settings())
+
+    assert calls == ["Woubot", "AI_AWARD01723"]
+    assert result["matches_found"] == 1
+    assert result["searched_term"] == "AI_AWARD01723"
+    assert result["top_match"] == "Woubot award"
+    assert result["link_or_id"] == "NIHR204173"
+
+
+def test_epo_cql_uses_publication_number_for_patent_identifiers():
+    cql = build_epo_cql_query(["US20210201479A1", "wound image segmentation"])
+
+    assert "pn=US20210201479" in cql
+    assert 'ta="US20210201479A1"' not in cql
+    assert 'ta="wound image segmentation"' in cql
+
+
+def test_exact_identifier_overlap_scores_very_high():
+    scored = score_result(
+        ["Woubot", "AI_AWARD01723", "US20210201479A1"],
+        "Woubot award metadata",
+        "This NIHR record contains AI-AWARD01723 and project NIHR204173.",
+    )
+
+    assert scored["risk"] == "VERY_HIGH"
+    assert scored["score"] == 0.95
+    assert scored["similarity_type"] == "exact_identifier_match"
+    assert scored["matched_concepts"] == ["AI_AWARD01723"]
+
+
+def test_new_generic_evaluation_terms_are_excluded():
+    assert is_generic_term("endpoint")
+    assert is_generic_term("primary endpoint")
+    assert is_generic_term("12-month decision model")
+    assert is_generic_term("related incidents")
+
+    q = build_similarity_query(ApplicationFacts(product_or_intervention="Woubot", endpoints=["endpoint", "12-month decision model"]))
+    joined = " ".join(q.primary_terms + q.secondary_terms).lower()
+    assert "endpoint" not in joined
+    assert "12-month decision model" not in joined
